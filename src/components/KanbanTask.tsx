@@ -14,7 +14,7 @@ export function KanbanTask({ task }: KanbanTaskProps) {
 
   return (
     <div 
-      className="kanban-task animate-scale-in bg-white/80 backdrop-blur-sm"
+      className="kanban-task animate-scale-in bg-background/90 backdrop-blur-sm dark:bg-background/50 dark:border dark:border-border"
       draggable
       onDragStart={handleDragStart}
     >

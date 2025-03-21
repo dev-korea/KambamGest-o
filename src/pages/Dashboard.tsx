@@ -3,10 +3,24 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { ProjectCard } from "@/components/ProjectCard";
-import { Plus, Search, Filter, BarChart2, PieChart, CalendarDays } from "lucide-react";
+import { CreateProjectModal } from "@/components/CreateProjectModal";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Search, Filter, BarChart2, PieChart, CalendarDays, Trash2, TabletSmartphone } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { 
+  ToggleGroup, 
+  ToggleGroupItem 
+} from "@/components/ui/toggle-group";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
-// Sample project data
-const projectsData = [
+// Sample project data - we'd fetch this from the database in a real app
+const initialProjects = [
   {
     id: "project-1",
     title: "Website Redesign",
@@ -66,11 +80,26 @@ const projectsData = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [projects, setProjects] = useState(initialProjects);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [viewMode, setViewMode] = useState("grid");
+  const [selectedTab, setSelectedTab] = useState("all");
   
-  const filteredProjects = projectsData.filter(project => 
+  const filteredProjects = projects.filter(project => 
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleProjectCreate = (newProject: any) => {
+    setProjects(prev => [...prev, newProject]);
+  };
+
+  const handleProjectDelete = (projectId: string) => {
+    setProjects(prev => prev.filter(project => project.id !== projectId));
+    toast("Project deleted successfully", {
+      description: "The project has been permanently removed.",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background pt-16 animate-fade-in">
@@ -83,7 +112,10 @@ export default function Dashboard() {
             <p className="text-muted-foreground">Manage and track your marketing projects</p>
           </div>
           
-          <button className="btn-primary px-4 py-2 flex items-center gap-2 self-start">
+          <button 
+            className="btn-primary px-4 py-2 flex items-center gap-2 self-start"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
             <Plus className="h-4 w-4" />
             <span>New Project</span>
           </button>
@@ -94,7 +126,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <StatCard 
                 title="Active Projects"
-                value="6"
+                value={projects.length.toString()}
                 icon={<BarChart2 className="h-5 w-5" />}
                 trend="+2 this month"
                 trendUp
@@ -102,7 +134,7 @@ export default function Dashboard() {
               
               <StatCard 
                 title="Completed Tasks"
-                value="59"
+                value={projects.reduce((total, project) => total + project.tasksCompleted, 0).toString()}
                 icon={<PieChart className="h-5 w-5" />}
                 trend="12 this week"
                 trendUp
@@ -118,8 +150,20 @@ export default function Dashboard() {
           </div>
         </div>
         
+        {/* Project Tabs */}
+        <div className="mb-4">
+          <ToggleGroup type="single" value={selectedTab} onValueChange={(value) => value && setSelectedTab(value)}>
+            <ToggleGroupItem value="all" aria-label="All Projects">All Projects</ToggleGroupItem>
+            <ToggleGroupItem value="active" aria-label="Active">Active</ToggleGroupItem>
+            <ToggleGroupItem value="completed" aria-label="Completed">Completed</ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+        
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <h2 className="text-xl font-medium">All Projects</h2>
+          <h2 className="text-xl font-medium">
+            {selectedTab === "all" ? "All Projects" : 
+             selectedTab === "active" ? "Active Projects" : "Completed Projects"}
+          </h2>
           
           <div className="flex items-center gap-2">
             <div className="relative">
@@ -133,27 +177,69 @@ export default function Dashboard() {
               />
             </div>
             
-            <button className="btn-secondary p-2 rounded-md">
-              <Filter className="h-5 w-5" />
-            </button>
+            <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value)}>
+              <ToggleGroupItem value="grid" aria-label="Grid View">
+                <div className="sr-only">Grid View</div>
+                <TabletSmartphone className="h-4 w-4" />
+              </ToggleGroupItem>
+              <ToggleGroupItem value="list" aria-label="List View">
+                <div className="sr-only">List View</div>
+                <Filter className="h-4 w-4" />
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" : "space-y-4"}>
           {filteredProjects.map((project, index) => (
             <div 
               key={project.id} 
-              className="animate-scale-in" 
+              className={viewMode === "grid" ? "animate-scale-in" : "animate-slide-up"}
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <ProjectCard
-                {...project}
-                onClick={() => navigate("/kanban")}
-              />
+              <div className="relative group">
+                <ProjectCard
+                  {...project}
+                  onClick={() => navigate(`/kanban?projectId=${project.id}`)}
+                />
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => navigate(`/kanban?projectId=${project.id}`)}>
+                      View Kanban
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleProjectDelete(project.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Project
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           ))}
         </div>
       </main>
+      
+      <CreateProjectModal 
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen} 
+        onProjectCreate={handleProjectCreate}
+      />
     </div>
   );
 }
