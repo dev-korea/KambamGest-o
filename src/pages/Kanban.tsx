@@ -1,53 +1,71 @@
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { KanbanBoard } from "@/components/KanbanBoard";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+
+// Sample project data - in a real app would fetch this from Supabase
+const projects = [
+  {
+    id: "project-1",
+    title: "Website Redesign",
+    description: "Complete overhaul of client's e-commerce website with new branding and improved UX."
+  },
+  {
+    id: "project-2",
+    title: "Social Media Campaign",
+    description: "Develop and execute a comprehensive social media campaign for product launch."
+  },
+  {
+    id: "project-3",
+    title: "Email Marketing",
+    description: "Create a series of email newsletters to promote upcoming events and webinars."
+  },
+  {
+    id: "project-4",
+    title: "Content Strategy",
+    description: "Develop comprehensive content plan for Q4 including blog posts, videos, and social content."
+  },
+  {
+    id: "project-5",
+    title: "Brand Refresh",
+    description: "Update visual identity including logo, color palette, and brand guidelines."
+  },
+  {
+    id: "project-6",
+    title: "SEO Optimization",
+    description: "Improve search engine rankings through keyword research and on-page optimization."
+  }
+];
 
 export default function Kanban() {
   const [searchParams] = useSearchParams();
-  const projectId = searchParams.get("projectId");
-  const navigate = useNavigate();
-  const [project, setProject] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // This would normally fetch project data from a database
+  const [project, setProject] = useState<typeof projects[0] | null>(null);
+  
   useEffect(() => {
-    // Simulate loading
-    setIsLoading(true);
+    const projectId = searchParams.get('projectId');
     
-    // Simulate API call to get project data
-    setTimeout(() => {
-      // If no project ID is provided or it's invalid, use default project
-      if (!projectId) {
-        setProject({
-          id: "default-project",
-          title: "Default Project",
-          description: "This is a default project view.",
-        });
+    if (projectId) {
+      const foundProject = projects.find(p => p.id === projectId);
+      if (foundProject) {
+        setProject(foundProject);
       } else {
-        // In a real app, we would fetch the specific project data
-        // For now, we'll just create mock data based on the ID
-        setProject({
-          id: projectId,
-          title: `Project ${projectId.split('-')[1]}`,
-          description: "This is the project description.",
-        });
+        toast.error("Project not found");
       }
-      
-      setIsLoading(false);
-    }, 500);
-  }, [projectId]);
+    } else {
+      toast.error("No project ID provided");
+    }
+  }, [searchParams]);
 
-  if (isLoading) {
+  if (!project) {
     return (
-      <div className="min-h-screen bg-background pt-16">
+      <div className="min-h-screen bg-background">
         <NavBar />
-        <main className="container px-6 py-8 mx-auto">
-          <div className="flex items-center justify-center h-[80vh]">
-            <div className="animate-pulse text-xl">Loading project...</div>
+        <main className="container px-6 py-8 mx-auto pt-24">
+          <div className="text-center">
+            <h1 className="text-2xl font-medium mb-4">Project Not Found</h1>
+            <p className="text-muted-foreground">Please select a project from the dashboard.</p>
           </div>
         </main>
       </div>
@@ -55,24 +73,16 @@ export default function Kanban() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-16">
+    <div className="min-h-screen bg-background">
       <NavBar />
-      <main className="container px-6 py-8 mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div>
-            <button 
-              onClick={() => navigate('/dashboard')}
-              className="flex items-center text-muted-foreground hover:text-foreground mb-2"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              <span>Back to Dashboard</span>
-            </button>
-            <h1 className="text-2xl font-medium">{project?.title || "Kanban Board"}</h1>
-            <p className="text-muted-foreground">{project?.description || "Manage your tasks with drag and drop"}</p>
-          </div>
+      
+      <main className="container px-6 pt-24 mx-auto overflow-x-auto">
+        <div className="mb-8">
+          <h1 className="text-2xl font-medium">{project.title}</h1>
+          <p className="text-muted-foreground">{project.description}</p>
         </div>
         
-        <KanbanBoard projectId={projectId || "default"} />
+        <KanbanBoard projectId={project.id} />
       </main>
     </div>
   );

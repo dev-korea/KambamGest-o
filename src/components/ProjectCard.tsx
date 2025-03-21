@@ -1,6 +1,7 @@
 
-import { Clock, BarChart, Calendar } from "lucide-react";
+import { Clock, BarChart, Calendar, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface ProjectCardProps {
   id: string;
@@ -11,6 +12,7 @@ interface ProjectCardProps {
   tasksCompleted: number;
   totalTasks: number;
   onClick?: () => void;
+  onDelete?: (id: string) => void;
 }
 
 export function ProjectCard({
@@ -22,12 +24,33 @@ export function ProjectCard({
   tasksCompleted,
   totalTasks,
   onClick,
+  onDelete,
 }: ProjectCardProps) {
+  
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(id);
+    }
+  };
+  
   return (
     <div 
       onClick={onClick}
-      className="glass-card card-hover rounded-xl p-6 flex flex-col gap-4 cursor-pointer"
+      className="glass-card card-hover rounded-xl p-6 flex flex-col gap-4 cursor-pointer relative group"
     >
+      {onDelete && (
+        <Button
+          variant="ghost" 
+          size="icon"
+          onClick={handleDelete}
+          className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <Trash2 className="h-4 w-4" />
+          <span className="sr-only">Delete project</span>
+        </Button>
+      )}
+      
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <span className="text-xs px-2 py-0.5 bg-secondary rounded-full">Project</span>

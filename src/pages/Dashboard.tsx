@@ -1,17 +1,9 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { ProjectCard } from "@/components/ProjectCard";
 import { CreateProjectModal } from "@/components/CreateProjectModal";
-import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Filter, BarChart2, PieChart, CalendarDays, Trash2, TabletSmartphone } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
+import { Plus, Search, Filter, BarChart2, PieChart, CalendarDays, TabletSmartphone } from "lucide-react";
 import { 
   ToggleGroup, 
   ToggleGroupItem 
@@ -197,39 +189,11 @@ export default function Dashboard() {
               className={viewMode === "grid" ? "animate-scale-in" : "animate-slide-up"}
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              <div className="relative group">
-                <ProjectCard
-                  {...project}
-                  onClick={() => navigate(`/kanban?projectId=${project.id}`)}
-                />
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Filter className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => navigate(`/kanban?projectId=${project.id}`)}>
-                      View Kanban
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="text-destructive focus:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleProjectDelete(project.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Project
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
+              <ProjectCard
+                {...project}
+                onClick={() => navigate(`/kanban?projectId=${project.id}`)}
+                onDelete={handleProjectDelete}
+              />
             </div>
           ))}
         </div>
@@ -271,3 +235,4 @@ function StatCard({ title, value, icon, trend, trendUp }: StatCardProps) {
     </div>
   );
 }
+

@@ -1,116 +1,264 @@
 
 import { useState } from "react";
-import { KanbanColumn, Task } from "./KanbanColumn";
+import { KanbanColumn } from "./KanbanColumn";
+import { KanbanTask } from "./KanbanTask";
+import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
-// Sample data for the Kanban board
-const initialTasks: Record<string, Task[]> = {
-  todo: [
-    {
-      id: "task-1",
-      title: "Website Redesign",
-      description: "Update the client's website with new branding elements and improve mobile responsiveness.",
-      dueDate: "Nov 15",
-      tags: ["Design", "Frontend"],
-      assigned: {
-        name: "Alex Chen",
-        avatar: "/avatars/alex.jpg",
-      },
-    },
-    {
-      id: "task-2",
-      title: "Social Media Campaign",
-      description: "Plan and create content for the upcoming product launch on Instagram and Facebook.",
-      dueDate: "Nov 20",
-      tags: ["Marketing", "Content"],
-    },
-  ],
-  inProgress: [
-    {
-      id: "task-3",
-      title: "SEO Optimization",
-      description: "Improve search engine rankings by optimizing keywords and metadata.",
-      dueDate: "Nov 10",
-      tags: ["SEO", "Technical"],
-      assigned: {
-        name: "Jamie Smith",
-        avatar: "/avatars/jamie.jpg",
-      },
-    },
-  ],
-  review: [
-    {
-      id: "task-4",
-      title: "Email Newsletter",
-      description: "Design and code the monthly newsletter template with the latest updates.",
-      dueDate: "Nov 5",
-      tags: ["Email", "Design"],
-      assigned: {
-        name: "Riley Johnson",
-        avatar: "/avatars/riley.jpg",
-      },
-    },
-  ],
-  completed: [
-    {
-      id: "task-5",
-      title: "Logo Design",
-      description: "Create a new logo based on the client's requirements and brand guidelines.",
-      dueDate: "Oct 30",
-      tags: ["Design", "Branding"],
-      assigned: {
-        name: "Jordan Lee",
-        avatar: "/avatars/jordan.jpg",
-      },
-    },
-  ],
-};
+export interface KanbanBoardProps {
+  projectId: string;
+}
 
-export function KanbanBoard() {
-  const [tasks, setTasks] = useState(initialTasks);
-  
-  const handleDrop = (taskId: string, targetColumnId: string) => {
-    // Find which column contains the task
-    let sourceColumnId = "";
-    const taskToMove = Object.entries(tasks).reduce((found: Task | null, [columnId, columnTasks]) => {
-      if (found) return found;
-      
-      const task = columnTasks.find(t => t.id === taskId);
-      if (task) {
-        sourceColumnId = columnId;
-        return task;
-      }
-      return null;
-    }, null);
+export interface Task {
+  id: string;
+  title: string;
+  description: string;
+  status: "todo" | "in-progress" | "review" | "completed";
+  priority: "low" | "medium" | "high";
+  dueDate: string;
+}
+
+// Sample data - in a real app would fetch this based on projectId from database
+const initialTasks: Task[] = [
+  {
+    id: "task-1",
+    title: "Research competitors",
+    description: "Analyze top 5 competitors' websites and identify strengths and weaknesses",
+    status: "completed",
+    priority: "high",
+    dueDate: "2023-10-28",
+  },
+  {
+    id: "task-2",
+    title: "Create wireframes",
+    description: "Design wireframes for homepage, product pages, and checkout flow",
+    status: "completed",
+    priority: "high",
+    dueDate: "2023-11-05",
+  },
+  {
+    id: "task-3",
+    title: "Develop homepage",
+    description: "Code the homepage based on approved wireframes and design",
+    status: "in-progress",
+    priority: "medium",
+    dueDate: "2023-11-15",
+  },
+  {
+    id: "task-4",
+    title: "Implement product filters",
+    description: "Add category, price, and attribute filters to product listing pages",
+    status: "todo",
+    priority: "medium",
+    dueDate: "2023-11-20",
+  },
+  {
+    id: "task-5",
+    title: "Design shopping cart",
+    description: "Create a user-friendly shopping cart interface with thumbnail previews",
+    status: "review",
+    priority: "medium",
+    dueDate: "2023-11-10",
+  },
+  {
+    id: "task-6",
+    title: "Optimize for mobile",
+    description: "Ensure responsive design functions correctly on various mobile devices",
+    status: "todo",
+    priority: "high",
+    dueDate: "2023-11-25",
+  },
+  {
+    id: "task-7",
+    title: "Integrate payment gateway",
+    description: "Connect Stripe API for secure payment processing",
+    status: "todo",
+    priority: "high",
+    dueDate: "2023-11-30",
+  },
+  {
+    id: "task-8",
+    title: "User testing",
+    description: "Conduct usability testing with 5-7 participants and gather feedback",
+    status: "todo",
+    priority: "medium",
+    dueDate: "2023-12-05",
+  },
+  {
+    id: "task-9",
+    title: "SEO optimization",
+    description: "Implement meta tags, structured data, and optimize for core web vitals",
+    status: "todo",
+    priority: "low",
+    dueDate: "2023-12-10",
+  },
+];
+
+export function KanbanBoard({ projectId }: KanbanBoardProps) {
+  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    priority: "medium" as const,
+    dueDate: new Date().toISOString().split("T")[0],
+  });
+
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData("taskId", taskId);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, status: Task["status"]) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("taskId");
     
-    if (!taskToMove || sourceColumnId === targetColumnId) return;
-    
-    // Remove from source column and add to target column
-    setTasks(prev => {
-      const newTasks = { ...prev };
-      newTasks[sourceColumnId] = prev[sourceColumnId].filter(t => t.id !== taskId);
-      newTasks[targetColumnId] = [...prev[targetColumnId], taskToMove];
-      return newTasks;
-    });
+    setTasks(tasks.map(task => 
+      task.id === taskId ? { ...task, status } : task
+    ));
   };
   
-  const columns = [
-    { id: "todo", title: "To Do" },
-    { id: "inProgress", title: "In Progress" },
-    { id: "review", title: "Review" },
-    { id: "completed", title: "Completed" },
-  ];
+  const addNewTask = () => {
+    const newTaskItem: Task = {
+      id: `task-${Date.now()}`,
+      title: newTask.title,
+      description: newTask.description,
+      status: "todo",
+      priority: newTask.priority,
+      dueDate: newTask.dueDate,
+    };
+    
+    setTasks([...tasks, newTaskItem]);
+    setNewTaskOpen(false);
+    setNewTask({
+      title: "",
+      description: "",
+      priority: "medium",
+      dueDate: new Date().toISOString().split("T")[0],
+    });
+  };
 
   return (
-    <div className="flex gap-6 overflow-x-auto pb-6 px-6 min-h-[calc(100vh-10rem)]">
-      {columns.map((column) => (
-        <KanbanColumn
-          key={column.id}
-          columnId={column.id}
-          title={column.title}
-          tasks={tasks[column.id] || []}
-          onDrop={handleDrop}
+    <div className="mb-8">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-medium">Task Board</h2>
+        <Button onClick={() => setNewTaskOpen(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          <span>Add Task</span>
+        </Button>
+      </div>
+      
+      <div className="flex gap-6 overflow-x-auto pb-4">
+        <KanbanColumn 
+          title="To Do" 
+          tasks={tasks.filter(task => task.status === "todo")}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, "todo")}
         />
-      ))}
+        
+        <KanbanColumn 
+          title="In Progress" 
+          tasks={tasks.filter(task => task.status === "in-progress")}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, "in-progress")}
+        />
+        
+        <KanbanColumn 
+          title="Review" 
+          tasks={tasks.filter(task => task.status === "review")}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, "review")}
+        />
+        
+        <KanbanColumn 
+          title="Completed" 
+          tasks={tasks.filter(task => task.status === "completed")}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDrop={(e) => handleDrop(e, "completed")}
+        />
+      </div>
+
+      <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Task</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <label htmlFor="title" className="text-sm font-medium block mb-1">
+                Title
+              </label>
+              <Input 
+                id="title"
+                value={newTask.title}
+                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                placeholder="Task title"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="description" className="text-sm font-medium block mb-1">
+                Description
+              </label>
+              <Textarea 
+                id="description"
+                value={newTask.description}
+                onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                placeholder="Task description"
+                rows={3}
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="priority" className="text-sm font-medium block mb-1">
+                Priority
+              </label>
+              <select
+                id="priority"
+                value={newTask.priority}
+                onChange={(e) => setNewTask({...newTask, priority: e.target.value as "low" | "medium" | "high"})}
+                className="w-full border border-input px-3 py-2 rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            
+            <div>
+              <label htmlFor="dueDate" className="text-sm font-medium block mb-1">
+                Due Date
+              </label>
+              <Input 
+                id="dueDate"
+                type="date"
+                value={newTask.dueDate}
+                onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewTaskOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={addNewTask} disabled={!newTask.title}>
+              Add Task
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

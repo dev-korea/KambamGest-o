@@ -1,7 +1,7 @@
 
 import { useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, Home, LayoutDashboard, Kanban, Settings, User, LogOut, Moon, Sun } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Menu, X, LayoutDashboard, Kanban, Settings, User, LogOut, Moon, Sun } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/hooks/use-theme";
@@ -17,7 +17,6 @@ export function NavBar() {
   };
 
   const navItems = [
-    { name: "Home", path: "/", icon: Home },
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Kanban", path: "/kanban", icon: Kanban },
   ];
