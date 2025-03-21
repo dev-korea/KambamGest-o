@@ -3,7 +3,19 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
-import type { Task } from "./KanbanBoard";
+
+// Export the Task interface so it can be imported properly
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  priority: "low" | "medium" | "high";
+  dueDate?: string;
+  assignee?: {
+    name: string;
+    avatar?: string;
+  };
+}
 
 interface KanbanColumnProps {
   title: string;
