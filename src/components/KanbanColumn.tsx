@@ -3,18 +3,7 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
-
-export interface Task {
-  id: string;
-  title: string;
-  description: string;
-  dueDate: string;
-  tags: string[];
-  assigned?: {
-    name: string;
-    avatar: string;
-  };
-}
+import type { Task } from "./KanbanBoard";
 
 interface KanbanColumnProps {
   title: string;
@@ -42,10 +31,14 @@ export function KanbanColumn({ title, tasks, columnId, onDrop }: KanbanColumnPro
     onDrop(taskId, columnId);
   };
 
+  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+    e.dataTransfer.setData("taskId", taskId);
+  };
+
   return (
     <div 
       className={cn(
-        "kanban-column transition-colors animate-fade-in",
+        "kanban-column min-w-[280px] p-4 rounded-lg bg-background border border-border transition-colors animate-fade-in",
         isOver && "bg-secondary/80 border border-primary/20"
       )}
       onDragOver={handleDragOver}
@@ -61,7 +54,13 @@ export function KanbanColumn({ title, tasks, columnId, onDrop }: KanbanColumnPro
       
       <div className="space-y-3">
         {tasks.map((task) => (
-          <KanbanTask key={task.id} task={task} />
+          <div 
+            key={task.id}
+            draggable
+            onDragStart={(e) => handleDragStart(e, task.id)}
+          >
+            <KanbanTask task={task} />
+          </div>
         ))}
       </div>
       

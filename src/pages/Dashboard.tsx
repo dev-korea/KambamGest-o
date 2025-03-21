@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { ProjectCard } from "@/components/ProjectCard";
@@ -8,10 +8,9 @@ import {
   ToggleGroup, 
   ToggleGroupItem 
 } from "@/components/ui/toggle-group";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-// Sample project data - we'd fetch this from the database in a real app
+// Sample project data as fallback if nothing in localStorage
 const initialProjects = [
   {
     id: "project-1",
@@ -72,22 +71,45 @@ const initialProjects = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [selectedTab, setSelectedTab] = useState("all");
+  
+  // Load projects from localStorage on mount
+  useEffect(() => {
+    const storedProjects = localStorage.getItem('projects');
+    if (storedProjects) {
+      setProjects(JSON.parse(storedProjects));
+    } else {
+      // If no projects found in localStorage, use initial data and save it
+      setProjects(initialProjects);
+      localStorage.setItem('projects', JSON.stringify(initialProjects));
+    }
+  }, []);
+  
+  // Save projects to localStorage whenever they change
+  useEffect(() => {
+    if (projects.length > 0) {
+      localStorage.setItem('projects', JSON.stringify(projects));
+    }
+  }, [projects]);
   
   const filteredProjects = projects.filter(project => 
     project.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     project.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleProjectCreate = (newProject: any) => {
-    setProjects(prev => [...prev, newProject]);
+  const handleProjectCreate = (newProject) => {
+    const updatedProjects = [...projects, newProject];
+    setProjects(updatedProjects);
+    // Project is automatically saved to localStorage due to the useEffect above
   };
 
-  const handleProjectDelete = (projectId: string) => {
-    setProjects(prev => prev.filter(project => project.id !== projectId));
+  const handleProjectDelete = (projectId) => {
+    const updatedProjects = projects.filter(project => project.id !== projectId);
+    setProjects(updatedProjects);
+    // Projects automatically saved to localStorage due to useEffect
     toast("Project deleted successfully", {
       description: "The project has been permanently removed.",
     });
@@ -235,4 +257,3 @@ function StatCard({ title, value, icon, trend, trendUp }: StatCardProps) {
     </div>
   );
 }
-

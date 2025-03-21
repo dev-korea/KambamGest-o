@@ -19,6 +19,11 @@ export interface Task {
   status: "todo" | "in-progress" | "review" | "completed";
   priority: "low" | "medium" | "high";
   dueDate: string;
+  tags: string[]; // Added tags to match KanbanColumn's Task interface
+  assigned?: {
+    name: string;
+    avatar: string;
+  };
 }
 
 // Sample data - in a real app would fetch this based on projectId from database
@@ -30,6 +35,7 @@ const initialTasks: Task[] = [
     status: "completed",
     priority: "high",
     dueDate: "2023-10-28",
+    tags: ["research"],
   },
   {
     id: "task-2",
@@ -38,6 +44,7 @@ const initialTasks: Task[] = [
     status: "completed",
     priority: "high",
     dueDate: "2023-11-05",
+    tags: ["design"],
   },
   {
     id: "task-3",
@@ -46,6 +53,7 @@ const initialTasks: Task[] = [
     status: "in-progress",
     priority: "medium",
     dueDate: "2023-11-15",
+    tags: ["development"],
   },
   {
     id: "task-4",
@@ -54,6 +62,7 @@ const initialTasks: Task[] = [
     status: "todo",
     priority: "medium",
     dueDate: "2023-11-20",
+    tags: ["development"],
   },
   {
     id: "task-5",
@@ -62,6 +71,7 @@ const initialTasks: Task[] = [
     status: "review",
     priority: "medium",
     dueDate: "2023-11-10",
+    tags: ["design"],
   },
   {
     id: "task-6",
@@ -70,6 +80,7 @@ const initialTasks: Task[] = [
     status: "todo",
     priority: "high",
     dueDate: "2023-11-25",
+    tags: ["development"],
   },
   {
     id: "task-7",
@@ -78,6 +89,7 @@ const initialTasks: Task[] = [
     status: "todo",
     priority: "high",
     dueDate: "2023-11-30",
+    tags: ["integration"],
   },
   {
     id: "task-8",
@@ -86,6 +98,7 @@ const initialTasks: Task[] = [
     status: "todo",
     priority: "medium",
     dueDate: "2023-12-05",
+    tags: ["testing"],
   },
   {
     id: "task-9",
@@ -94,6 +107,7 @@ const initialTasks: Task[] = [
     status: "todo",
     priority: "low",
     dueDate: "2023-12-10",
+    tags: ["seo"],
   },
 ];
 
@@ -103,24 +117,13 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    priority: "medium" as const,
+    priority: "medium" as "low" | "medium" | "high", // Fix type issue
     dueDate: new Date().toISOString().split("T")[0],
   });
 
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData("taskId", taskId);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, status: Task["status"]) => {
-    e.preventDefault();
-    const taskId = e.dataTransfer.getData("taskId");
-    
+  const handleDrop = (taskId: string, newStatus: Task["status"]) => {
     setTasks(tasks.map(task => 
-      task.id === taskId ? { ...task, status } : task
+      task.id === taskId ? { ...task, status: newStatus } : task
     ));
   };
   
@@ -132,6 +135,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       status: "todo",
       priority: newTask.priority,
       dueDate: newTask.dueDate,
+      tags: [], // Add empty tags array for new tasks
     };
     
     setTasks([...tasks, newTaskItem]);
@@ -158,33 +162,29 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         <KanbanColumn 
           title="To Do" 
           tasks={tasks.filter(task => task.status === "todo")}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, "todo")}
+          columnId="todo"
+          onDrop={handleDrop}
         />
         
         <KanbanColumn 
           title="In Progress" 
           tasks={tasks.filter(task => task.status === "in-progress")}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, "in-progress")}
+          columnId="in-progress"
+          onDrop={handleDrop}
         />
         
         <KanbanColumn 
           title="Review" 
           tasks={tasks.filter(task => task.status === "review")}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, "review")}
+          columnId="review"
+          onDrop={handleDrop}
         />
         
         <KanbanColumn 
           title="Completed" 
           tasks={tasks.filter(task => task.status === "completed")}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, "completed")}
+          columnId="completed"
+          onDrop={handleDrop}
         />
       </div>
 
