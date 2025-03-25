@@ -2,6 +2,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { TaskDetailModal } from "./TaskDetailModal";
 
 // Export the Task interface so it can be imported properly
 export interface Task {
@@ -48,6 +50,8 @@ export function KanbanColumn({
   onDeleteTask
 }: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -69,41 +73,61 @@ export function KanbanColumn({
     e.dataTransfer.setData("taskId", taskId);
   };
 
+  const handleTaskCardClick = (task: Task) => {
+    setSelectedTask(task);
+    setIsDetailModalOpen(true);
+    if (onTaskClick) {
+      onTaskClick(task);
+    }
+  };
+
   return (
-    <div 
-      className={cn(
-        "kanban-column min-w-[280px] p-4 rounded-lg bg-background border border-border transition-colors animate-fade-in",
-        isOver && "bg-secondary/80 border border-primary/20"
-      )}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="font-medium">{title}</h3>
-        <div className="bg-muted rounded-full px-2 py-0.5 text-xs font-medium">
-          {tasks.length}
+    <>
+      <div 
+        className={cn(
+          "kanban-column min-w-[280px] p-4 rounded-lg bg-background border border-border transition-colors animate-fade-in",
+          isOver && "bg-secondary/80 border border-primary/20"
+        )}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-medium">{title}</h3>
+          <div className="bg-muted rounded-full px-2 py-0.5 text-xs font-medium">
+            {tasks.length}
+          </div>
+        </div>
+        
+        <div className="space-y-3">
+          {tasks.map((task) => (
+            <div 
+              key={task.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, task.id)}
+              onClick={() => handleTaskCardClick(task)}
+              className="cursor-pointer"
+            >
+              <KanbanTask 
+                task={task} 
+                onUpdateNotes={onUpdateNotes}
+                onUpdateTask={onUpdateTask}
+                onDeleteTask={onDeleteTask}
+              />
+            </div>
+          ))}
         </div>
       </div>
-      
-      <div className="space-y-3">
-        {tasks.map((task) => (
-          <div 
-            key={task.id}
-            draggable
-            onDragStart={(e) => handleDragStart(e, task.id)}
-            onClick={() => onTaskClick && onTaskClick(task)}
-            className="cursor-pointer"
-          >
-            <KanbanTask 
-              task={task} 
-              onUpdateNotes={onUpdateNotes}
-              onUpdateTask={onUpdateTask}
-              onDeleteTask={onDeleteTask}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
+
+      {selectedTask && (
+        <TaskDetailModal
+          open={isDetailModalOpen}
+          onOpenChange={setIsDetailModalOpen}
+          task={selectedTask}
+          onUpdateTask={onUpdateTask}
+          onDeleteTask={onDeleteTask}
+        />
+      )}
+    </>
   );
 }
