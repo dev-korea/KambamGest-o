@@ -1,4 +1,5 @@
 
+
 // Status normalization functions
 export const normalizeStatus = (status: string): string => {
   switch (status) {
@@ -88,4 +89,58 @@ export const parseDateString = (dateString: string | null | undefined): Date | n
     console.error("Error parsing date:", error);
     return null;
   }
+};
+
+// Function to check if a task is due today
+export const isTaskDueToday = (dueDate: string | null | undefined): boolean => {
+  if (!dueDate) return false;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const taskDate = parseDateString(dueDate);
+  if (!taskDate) return false;
+  
+  taskDate.setHours(0, 0, 0, 0);
+  
+  return (
+    taskDate.getFullYear() === today.getFullYear() &&
+    taskDate.getMonth() === today.getMonth() &&
+    taskDate.getDate() === today.getDate()
+  );
+};
+
+// Function to check if a task is overdue
+export const isTaskOverdue = (dueDate: string | null | undefined): boolean => {
+  if (!dueDate) return false;
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const taskDate = parseDateString(dueDate);
+  if (!taskDate) return false;
+  
+  taskDate.setHours(0, 0, 0, 0);
+  
+  return taskDate < today;
+};
+
+// Function to check if a task was completed yesterday
+export const wasCompletedYesterday = (task: { status: string; completedDate?: string }): boolean => {
+  if (task.status !== "completed" || !task.completedDate) return false;
+  
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  yesterday.setHours(0, 0, 0, 0);
+  
+  const completedDate = parseDateString(task.completedDate);
+  if (!completedDate) return false;
+  
+  completedDate.setHours(0, 0, 0, 0);
+  
+  return (
+    completedDate.getFullYear() === yesterday.getFullYear() &&
+    completedDate.getMonth() === yesterday.getMonth() &&
+    completedDate.getDate() === yesterday.getDate()
+  );
 };

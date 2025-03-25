@@ -144,7 +144,7 @@ export function KanbanColumn({
               <KanbanTask 
                 task={{
                   ...task,
-                  status: normalizeStatus(task.status)
+                  status: normalizeStatus(task.status) as Task["status"]
                 }} 
                 onUpdateNotes={onUpdateNotes}
                 onUpdateTask={handleUpdateTask}
