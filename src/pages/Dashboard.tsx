@@ -112,16 +112,6 @@ export default function Dashboard() {
     }, 100);
   };
 
-  const resetProjects = () => {
-    projects.forEach(project => {
-      localStorage.removeItem(`tasks-${project.id}`);
-    });
-    
-    setProjects([]);
-    toast.success("Todos os projetos foram removidos");
-    setCompletedTasks(0);
-  };
-
   const handleProjectClick = (projectId: string) => {
     navigate(`/kanban?projectId=${projectId}`);
   };
@@ -137,24 +127,13 @@ export default function Dashboard() {
             <p className="text-muted-foreground">Gerencie e acompanhe seus projetos de marketing</p>
           </div>
           
-          <div className="flex gap-2">
-            {projects.length > 0 && (
-              <Button 
-                variant="outline" 
-                onClick={resetProjects}
-                className="self-start"
-              >
-                Limpar Todos os Projetos
-              </Button>
-            )}
-            <button 
-              className="btn-primary px-4 py-2 flex items-center gap-2 self-start"
-              onClick={() => setIsCreateModalOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-              <span>Novo Projeto</span>
-            </button>
-          </div>
+          <button 
+            className="btn-primary px-4 py-2 flex items-center gap-2 self-start"
+            onClick={() => setIsCreateModalOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+            <span>Novo Projeto</span>
+          </button>
         </div>
         
         {projects.length > 0 ? (
@@ -308,3 +287,4 @@ function StatCard({ title, value, icon, trend, trendUp }: StatCardProps) {
     </div>
   );
 }
+

@@ -38,46 +38,74 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
   
   useEffect(() => {
     loadAllTasks();
+    
+    // Add event listener to reload tasks when localStorage changes
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Add custom event listener for task updates
+    window.addEventListener('taskUpdated', loadAllTasks);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('taskUpdated', loadAllTasks);
+    };
   }, []);
   
+  const handleStorageChange = (e: StorageEvent) => {
+    // Reload tasks when localStorage changes and key starts with 'tasks-'
+    if (e.key && e.key.startsWith('tasks-')) {
+      loadAllTasks();
+    }
+  };
+  
   const loadAllTasks = () => {
-    const projects = JSON.parse(localStorage.getItem('projects') || '[]');
-    
-    const allTasksWithProject: TaskWithProject[] = [];
-    const today: TaskWithProject[] = [];
-    const overdue: TaskWithProject[] = [];
-    const yesterdayCompleted: TaskWithProject[] = [];
-    
-    // Loop through all projects and their tasks
-    projects.forEach((project: any) => {
-      const projectTasks = JSON.parse(localStorage.getItem(`tasks-${project.id}`) || '[]');
+    try {
+      const projects = JSON.parse(localStorage.getItem('projects') || '[]');
       
-      projectTasks.forEach((task: any) => {
-        const taskWithProject = {
-          ...task,
-          projectName: project.title,
-          status: normalizeStatus(task.status)
-        };
+      const allTasksWithProject: TaskWithProject[] = [];
+      const today: TaskWithProject[] = [];
+      const overdue: TaskWithProject[] = [];
+      const yesterdayCompleted: TaskWithProject[] = [];
+      
+      // Loop through all projects and their tasks
+      projects.forEach((project: any) => {
+        const projectTasks = JSON.parse(localStorage.getItem(`tasks-${project.id}`) || '[]');
         
-        allTasksWithProject.push(taskWithProject);
-        
-        if (isTaskDueToday(task.dueDate)) {
-          today.push(taskWithProject);
-        }
-        
-        if (isTaskOverdue(task.dueDate)) {
-          overdue.push(taskWithProject);
-        }
-        
-        if (wasCompletedYesterday(task)) {
-          yesterdayCompleted.push(taskWithProject);
-        }
+        projectTasks.forEach((task: any) => {
+          const taskWithProject = {
+            ...task,
+            projectName: project.title,
+            status: normalizeStatus(task.status)
+          };
+          
+          allTasksWithProject.push(taskWithProject);
+          
+          // Parse the date properly regardless of format
+          const normalizedDueDate = task.dueDate ? 
+            (task.dueDate.includes('/') ? task.dueDate : 
+             new Date(task.dueDate).toLocaleDateString('pt-BR')) : '';
+          
+          if (isTaskDueToday(normalizedDueDate)) {
+            today.push(taskWithProject);
+          }
+          
+          if (isTaskOverdue(normalizedDueDate)) {
+            overdue.push(taskWithProject);
+          }
+          
+          if (wasCompletedYesterday(task)) {
+            yesterdayCompleted.push(taskWithProject);
+          }
+        });
       });
-    });
-    
-    setTodayTasks(today);
-    setOverdueTasks(overdue);
-    setYesterdayCompletedTasks(yesterdayCompleted);
+      
+      setTodayTasks(today);
+      setOverdueTasks(overdue);
+      setYesterdayCompletedTasks(yesterdayCompleted);
+      
+    } catch (error) {
+      console.error("Error loading tasks:", error);
+    }
   };
   
   const getPriorityColor = (priority: string) => {

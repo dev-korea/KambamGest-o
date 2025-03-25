@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,17 +45,34 @@ export function TaskDetailModal({
   const [users, setUsers] = useState<{name: string, email: string}[]>([]);
   const isMobile = useIsMobile();
 
+  // Sync with task when it changes
+  useEffect(() => {
+    setEditedTask({ ...task });
+    setSelectedDate(
+      task.dueDate ? 
+        (task.dueDate.includes('/') ? 
+          parse(task.dueDate, 'dd/MM/yyyy', new Date()) : 
+          new Date(task.dueDate)
+        ) : 
+        undefined
+    );
+  }, [task]);
+
   // Load registered users for assignee dropdown
-  useState(() => {
+  useEffect(() => {
     const storedUsers = localStorage.getItem('users');
     if (storedUsers) {
       setUsers(JSON.parse(storedUsers));
     }
-  });
+  }, []);
 
   const handleSave = () => {
     if (onUpdateTask) {
       onUpdateTask(task.id, editedTask);
+      
+      // Dispatch a custom event to inform other components about the task update
+      window.dispatchEvent(new CustomEvent('taskUpdated'));
+      
       onOpenChange(false);
     }
   };
@@ -68,6 +85,8 @@ export function TaskDetailModal({
         // Small delay to ensure modal closes before deletion
         setTimeout(() => {
           onDeleteTask(task.id);
+          // Dispatch a custom event to inform other components about the task update
+          window.dispatchEvent(new CustomEvent('taskUpdated'));
           toast.success("Tarefa excluída com sucesso");
         }, 100);
       } catch (error) {
@@ -132,6 +151,23 @@ export function TaskDetailModal({
 
   const getInitial = (name: string) => {
     return name ? name.charAt(0).toUpperCase() : "?";
+  };
+
+  const handleDateSelect = (date: Date | undefined) => {
+    setSelectedDate(date);
+    if (date) {
+      // Format date consistently as yyyy-MM-dd for storage
+      const formattedDate = format(date, 'yyyy-MM-dd');
+      setEditedTask({
+        ...editedTask,
+        dueDate: formattedDate
+      });
+    } else {
+      // If date is cleared
+      const newTask = { ...editedTask };
+      delete newTask.dueDate;
+      setEditedTask(newTask);
+    }
   };
 
   return (
@@ -230,21 +266,12 @@ export function TaskDetailModal({
                     {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Selecione uma data"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 pointer-events-auto">
+                <PopoverContent className="w-auto p-0" onClick={(e) => e.stopPropagation()}>
                   <Calendar
                     mode="single"
                     selected={selectedDate}
-                    onSelect={(date) => {
-                      setSelectedDate(date);
-                      if (date) {
-                        setEditedTask({
-                          ...editedTask,
-                          dueDate: format(date, 'yyyy-MM-dd')
-                        });
-                      }
-                    }}
+                    onSelect={handleDateSelect}
                     initialFocus
-                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

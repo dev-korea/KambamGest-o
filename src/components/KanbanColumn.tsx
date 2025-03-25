@@ -72,6 +72,9 @@ export function KanbanColumn({
     setIsOver(false);
     const taskId = e.dataTransfer.getData("taskId");
     onDrop(taskId, columnId);
+    
+    // Dispatch a custom event to inform other components about the task update
+    window.dispatchEvent(new CustomEvent('taskUpdated'));
   };
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
@@ -92,6 +95,14 @@ export function KanbanColumn({
       setTimeout(() => {
         setSelectedTask(null);
       }, 300);
+    }
+  };
+
+  const handleUpdateTask = (taskId: string, updatedTask: Partial<Task>) => {
+    if (onUpdateTask) {
+      onUpdateTask(taskId, updatedTask);
+      // Dispatch a custom event to inform other components about the task update
+      window.dispatchEvent(new CustomEvent('taskUpdated'));
     }
   };
 
@@ -128,7 +139,7 @@ export function KanbanColumn({
                   status: normalizeStatus(task.status)
                 }} 
                 onUpdateNotes={onUpdateNotes}
-                onUpdateTask={onUpdateTask}
+                onUpdateTask={handleUpdateTask}
                 onDeleteTask={onDeleteTask}
               />
             </div>
@@ -141,7 +152,7 @@ export function KanbanColumn({
           open={isDetailModalOpen}
           onOpenChange={handleDetailModalOpenChange}
           task={selectedTask}
-          onUpdateTask={onUpdateTask}
+          onUpdateTask={handleUpdateTask}
           onDeleteTask={onDeleteTask}
         />
       )}
