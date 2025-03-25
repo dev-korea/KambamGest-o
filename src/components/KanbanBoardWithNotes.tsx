@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
@@ -67,18 +66,21 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       console.log("Detected task date change event, reloading tasks");
       loadTasks();
       
-      // Force a reload for the daily overview by dispatching a custom event
-      window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }, 50);
     };
     
     window.addEventListener('kanban-data-update', handleUndoEvent as EventListener);
     window.addEventListener('taskUpdated', handleTaskUpdate);
     window.addEventListener('taskDateChanged', handleDateChange);
+    window.addEventListener('dailyTasksRefresh', handleDateChange);
     
     return () => {
       window.removeEventListener('kanban-data-update', handleUndoEvent as EventListener);
       window.removeEventListener('taskUpdated', handleTaskUpdate);
       window.removeEventListener('taskDateChanged', handleDateChange);
+      window.removeEventListener('dailyTasksRefresh', handleDateChange);
     };
   }, [projectId]);
   
@@ -156,7 +158,9 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       onTasksChanged();
     }
     
-    window.dispatchEvent(new CustomEvent('taskUpdated'));
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('taskUpdated'));
+    }, 10);
   };
 
   const handleDrop = (taskId: string, targetColumnId: string) => {
@@ -242,7 +246,13 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     saveTasks(updatedTasks);
     
     if (isDateChange) {
-      window.dispatchEvent(new CustomEvent('taskDateChanged'));
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('taskDateChanged'));
+      }, 10);
+      
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }, 20);
     }
   };
 
@@ -312,8 +322,13 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     setSelectedDate(undefined);
     
     if (normalizedDueDate) {
-      window.dispatchEvent(new CustomEvent('taskDateChanged'));
-      window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('taskDateChanged'));
+      }, 10);
+      
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }, 20);
     }
 
     toast.success("Tarefa adicionada com sucesso");

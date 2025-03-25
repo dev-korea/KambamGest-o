@@ -58,24 +58,35 @@ export default function Dashboard() {
 
     countCompletedTasks();
     
-    // Listen for task update events to refresh daily tasks
+    // Listen for task update events to refresh daily tasks with staggered timeouts
     const handleTaskUpdate = () => {
       console.log("Task update detected in Dashboard, refreshing data");
-      countCompletedTasks();
+      setTimeout(() => countCompletedTasks(), 50);
+    };
+    
+    const handleTaskDateChange = () => {
+      console.log("Task date change detected in Dashboard, refreshing data");
+      setTimeout(() => countCompletedTasks(), 100);
+    };
+    
+    const handleDailyTasksRefresh = () => {
+      console.log("Daily tasks refresh requested in Dashboard");
+      setTimeout(() => countCompletedTasks(), 150);
     };
     
     window.addEventListener('taskUpdated', handleTaskUpdate);
-    window.addEventListener('taskDateChanged', handleTaskUpdate);
-    window.addEventListener('dailyTasksRefresh', handleTaskUpdate);
+    window.addEventListener('taskDateChanged', handleTaskDateChange);
+    window.addEventListener('dailyTasksRefresh', handleDailyTasksRefresh);
     
     return () => {
       window.removeEventListener('taskUpdated', handleTaskUpdate);
-      window.removeEventListener('taskDateChanged', handleTaskUpdate);
-      window.removeEventListener('dailyTasksRefresh', handleTaskUpdate);
+      window.removeEventListener('taskDateChanged', handleTaskDateChange);
+      window.removeEventListener('dailyTasksRefresh', handleDailyTasksRefresh);
     };
   }, []);
 
   const countCompletedTasks = () => {
+    console.log("Loading all tasks for daily overview");
     let totalCompleted = 0;
     
     const storedProjects = localStorage.getItem('projects');
@@ -91,6 +102,11 @@ export default function Dashboard() {
     });
     
     setCompletedTasks(totalCompleted);
+    
+    // Dispatch an additional event to ensure components are in sync
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+    }, 50);
   };
   
   useEffect(() => {

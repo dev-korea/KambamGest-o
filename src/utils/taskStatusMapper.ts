@@ -71,7 +71,7 @@ export function parseDateString(dateString: string | null | undefined): Date | n
   let result: Date | null = null;
 
   // If it's already a Date object
-  if (dateString instanceof Date) {
+  if (typeof dateString === 'object' && dateString instanceof Date) {
     return isValid(dateString) ? dateString : null;
   }
   
@@ -194,8 +194,8 @@ export function normalizeDate(date: Date | string | null | undefined): string {
 export function areDatesEqual(date1: string | Date | null | undefined, date2: string | Date | null | undefined): boolean {
   if (!date1 || !date2) return date1 === date2;
   
-  const parsed1 = parseDateString(date1);
-  const parsed2 = parseDateString(date2);
+  const parsed1 = typeof date1 === "string" ? parseDateString(date1) : date1;
+  const parsed2 = typeof date2 === "string" ? parseDateString(date2) : date2;
   
   if (!parsed1 || !parsed2) return false;
   

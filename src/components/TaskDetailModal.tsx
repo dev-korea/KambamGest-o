@@ -73,16 +73,21 @@ export function TaskDetailModal({
       // Make sure task has a valid status
       onUpdateTask(task.id, editedTask);
       
-      // Dispatch a custom event to inform other components about the task update
+      // Dispatch multiple events to ensure all components are properly updated
       window.dispatchEvent(new CustomEvent('taskUpdated'));
       
       // Additionally dispatch a specific event for date changes
       if (prevDate !== newDate) {
         console.log("Date changed from", prevDate, "to", newDate);
-        window.dispatchEvent(new CustomEvent('taskDateChanged'));
         
-        // Add an extra event to ensure the daily overview is refreshed
-        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        // Force updates by dispatching multiple events with slight delays
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('taskDateChanged'));
+        }, 10);
+        
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        }, 20);
       }
       
       onOpenChange(false);

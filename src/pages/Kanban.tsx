@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -51,26 +50,37 @@ export default function Kanban() {
     const handleTaskUpdated = () => {
       if (project) {
         console.log("Task updated event detected in Kanban, updating stats");
-        updateTaskStats(project.id);
+        setTimeout(() => updateTaskStats(project.id), 50);
       }
     };
     
     const handleTaskDateChanged = () => {
       if (project) {
         console.log("Task date changed event detected in Kanban");
-        updateTaskStats(project.id);
+        setTimeout(() => updateTaskStats(project.id), 100);
         
         // Ensure daily tasks view is refreshed
-        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        }, 150);
+      }
+    };
+    
+    const handleDailyTasksRefresh = () => {
+      if (project) {
+        console.log("Daily tasks refresh requested in Kanban");
+        setTimeout(() => updateTaskStats(project.id), 200);
       }
     };
     
     window.addEventListener('taskUpdated', handleTaskUpdated);
     window.addEventListener('taskDateChanged', handleTaskDateChanged);
+    window.addEventListener('dailyTasksRefresh', handleDailyTasksRefresh);
     
     return () => {
       window.removeEventListener('taskUpdated', handleTaskUpdated);
       window.removeEventListener('taskDateChanged', handleTaskDateChanged);
+      window.removeEventListener('dailyTasksRefresh', handleDailyTasksRefresh);
     };
   }, [project]);
 
