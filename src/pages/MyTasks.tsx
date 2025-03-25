@@ -85,7 +85,7 @@ export default function MyTasks() {
               ...task,
               projectId: project.id,
               // Ensure status is normalized to one of the allowed types
-              status: normalizeStatus(task.status)
+              status: normalizeStatus(task.status) as Task["status"]
             }));
           
           assignedTasks.push(...userTasks);
@@ -599,3 +599,4 @@ export default function MyTasks() {
     </div>
   );
 }
+
