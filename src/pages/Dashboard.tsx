@@ -19,6 +19,7 @@ export default function Dashboard() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState("grid");
   const [selectedTab, setSelectedTab] = useState("all");
+  const [completedTasks, setCompletedTasks] = useState(0);
   
   // Load projects from localStorage on mount
   useEffect(() => {
@@ -30,7 +31,31 @@ export default function Dashboard() {
       setProjects([]);
       localStorage.setItem('projects', JSON.stringify([]));
     }
+
+    // Count all completed tasks across all projects
+    countCompletedTasks();
   }, []);
+
+  // Count completed tasks across all projects
+  const countCompletedTasks = () => {
+    let totalCompleted = 0;
+    
+    // Get all project IDs
+    const storedProjects = localStorage.getItem('projects');
+    const projects = storedProjects ? JSON.parse(storedProjects) : [];
+    
+    // For each project, get its tasks and count completed ones
+    projects.forEach((project: any) => {
+      const projectTasks = localStorage.getItem(`tasks-${project.id}`);
+      if (projectTasks) {
+        const tasks = JSON.parse(projectTasks);
+        const completed = tasks.filter((task: any) => task.status === "completed").length;
+        totalCompleted += completed;
+      }
+    });
+    
+    setCompletedTasks(totalCompleted);
+  };
   
   // Save projects to localStorage whenever they change
   useEffect(() => {
@@ -55,11 +80,17 @@ export default function Dashboard() {
     toast("Project deleted successfully", {
       description: "The project has been permanently removed.",
     });
+    
+    // Recount completed tasks after deletion
+    setTimeout(() => {
+      countCompletedTasks();
+    }, 100);
   };
 
   const resetProjects = () => {
     setProjects([]);
     toast.success("All projects have been removed");
+    setCompletedTasks(0);
   };
 
   return (
@@ -108,10 +139,10 @@ export default function Dashboard() {
                   
                   <StatCard 
                     title="Completed Tasks"
-                    value={projects.reduce((total, project) => total + (project.tasksCompleted || 0), 0).toString()}
+                    value={completedTasks.toString()}
                     icon={<PieChart className="h-5 w-5" />}
-                    trend="12 this week"
-                    trendUp
+                    trend={`${completedTasks > 0 ? completedTasks : 'No'} task${completedTasks !== 1 ? 's' : ''} this week`}
+                    trendUp={completedTasks > 0}
                   />
                   
                   <StatCard 

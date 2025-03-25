@@ -1,7 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { KanbanColumn } from "./KanbanColumn";
-import { Plus, ListTodo, User, Calendar, ClipboardCheck } from "lucide-react";
+import { Plus, ListTodo, User, Calendar, ClipboardCheck, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PopoverContent, Popover, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export interface KanbanBoardProps {
   projectId: string;
@@ -38,6 +38,39 @@ export interface Task {
 }
 
 export function KanbanBoard({ projectId }: KanbanBoardProps) {
+  // Check if there's a template to apply
+  useEffect(() => {
+    const templateToAdd = localStorage.getItem('templateToAdd');
+    if (templateToAdd) {
+      const template = JSON.parse(templateToAdd);
+      // Add template as a new task
+      const newTaskItem: Task = {
+        id: `task-${Date.now()}`,
+        title: template.title,
+        description: template.description || "",
+        status: "todo",
+        priority: template.priority || "medium",
+        dueDate: template.dueDate || format(new Date(), 'yyyy-MM-dd'),
+        tags: template.tags || [],
+        assignee: template.assignee || undefined,
+        subtasks: template.subtasks || [],
+      };
+      
+      const currentTasks = JSON.parse(localStorage.getItem(`tasks-${projectId}`) || '[]');
+      const updatedTasks = [...currentTasks, newTaskItem];
+      localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
+      
+      // Clear template from localStorage
+      localStorage.removeItem('templateToAdd');
+      
+      // Show success message
+      toast.success("Template task added successfully");
+      
+      // Update tasks state
+      setTasks(updatedTasks);
+    }
+  }, [projectId]);
+
   // Get tasks from localStorage or use empty array if none exist
   const getTasksFromStorage = () => {
     const storedTasks = localStorage.getItem(`tasks-${projectId}`);
@@ -50,6 +83,17 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [newSubtask, setNewSubtask] = useState("");
   const [newTaskTag, setNewTaskTag] = useState("");
+  const [teammatesList, setTeammatesList] = useState<string[]>([]);
+  
+  // Get usernames from localStorage to show as teammate suggestions
+  useEffect(() => {
+    const storedUsers = localStorage.getItem('users');
+    if (storedUsers) {
+      const users = JSON.parse(storedUsers);
+      const names = users.map((user: any) => user.name);
+      setTeammatesList(names);
+    }
+  }, []);
   
   const [newTask, setNewTask] = useState({
     title: "",
@@ -127,6 +171,14 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     toast.success("Task updated successfully");
   };
 
+  const deleteTask = (taskId: string) => {
+    const updatedTasks = tasks.filter(task => task.id !== taskId);
+    setTasks(updatedTasks);
+    localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
+    closeTaskDetail();
+    toast.success("Task deleted successfully");
+  };
+
   const addSubtask = () => {
     if (!newSubtask.trim()) return;
     
@@ -187,6 +239,24 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
     
     setTasks(updatedTasks);
     localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
+  };
+
+  const getInitial = (name: string) => {
+    return name.charAt(0).toUpperCase();
+  };
+
+  // Function to get color based on priority
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'high':
+        return 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300';
+      case 'medium':
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300';
+      case 'low':
+        return 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300';
+      default:
+        return 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
+    }
   };
 
   return (
@@ -277,12 +347,20 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                 <label htmlFor="assignee" className="text-sm font-medium block mb-1">
                   Assignee
                 </label>
-                <Input 
-                  id="assignee"
-                  value={newTask.assignee.name}
-                  onChange={(e) => setNewTask({...newTask, assignee: { name: e.target.value }})}
-                  placeholder="Assignee name"
-                />
+                <div className="relative">
+                  <Input 
+                    id="assignee"
+                    value={newTask.assignee.name}
+                    onChange={(e) => setNewTask({...newTask, assignee: { name: e.target.value }})}
+                    placeholder="Assignee name"
+                    list="teammates-list"
+                  />
+                  <datalist id="teammates-list">
+                    {teammatesList.map((name) => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
+                </div>
               </div>
               
               <div>
@@ -461,14 +539,22 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                 
                 <div>
                   <h3 className="text-sm font-medium mb-1">Assignee</h3>
-                  <Input
-                    value={selectedTask.assignee?.name || ""}
-                    onChange={(e) => setSelectedTask({
-                      ...selectedTask,
-                      assignee: { ...selectedTask.assignee, name: e.target.value }
-                    })}
-                    placeholder="Assign to someone"
-                  />
+                  <div className="relative">
+                    <Input 
+                      value={selectedTask.assignee?.name || ""}
+                      onChange={(e) => setSelectedTask({
+                        ...selectedTask,
+                        assignee: { ...selectedTask.assignee, name: e.target.value }
+                      })}
+                      placeholder="Assign to someone"
+                      list="teammates-list"
+                    />
+                    <datalist id="teammates-list">
+                      {teammatesList.map((name) => (
+                        <option key={name} value={name} />
+                      ))}
+                    </datalist>
+                  </div>
                 </div>
                 
                 <div>
@@ -481,6 +567,29 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
                       dueDate: e.target.value
                     })}
                   />
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Team Members</h3>
+                  <div className="p-3 bg-secondary/20 rounded-md flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Assigned to</span>
+                    </div>
+                    
+                    {selectedTask.assignee?.name ? (
+                      <div className="flex gap-2 items-center p-2 bg-secondary rounded-md">
+                        <Avatar className="h-7 w-7">
+                          <AvatarFallback>{getInitial(selectedTask.assignee.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{selectedTask.assignee.name}</span>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground p-2 bg-secondary rounded-md">
+                        No one assigned yet
+                      </div>
+                    )}
+                  </div>
                 </div>
               </TabsContent>
 
@@ -641,13 +750,23 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
               </TabsContent>
             </Tabs>
             
-            <DialogFooter>
-              <Button variant="outline" onClick={closeTaskDetail}>
-                Cancel
+            <DialogFooter className="flex justify-between">
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={() => deleteTask(selectedTask.id)}
+              >
+                Delete Task
               </Button>
-              <Button onClick={() => updateTask(selectedTask)}>
-                Save Changes
-              </Button>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={closeTaskDetail}>
+                  Cancel
+                </Button>
+                <Button onClick={() => updateTask(selectedTask)}>
+                  Save Changes
+                </Button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
