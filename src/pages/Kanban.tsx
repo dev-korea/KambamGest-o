@@ -12,6 +12,11 @@ export default function Kanban() {
   const navigate = useNavigate();
   const [project, setProject] = useState<{id: string; title: string; description: string} | null>(null);
   const [activeTab, setActiveTab] = useState("tasks");
+  const [taskStats, setTaskStats] = useState({
+    total: 0,
+    completed: 0,
+    progress: 0
+  });
   
   useEffect(() => {
     const projectId = searchParams.get('projectId');
@@ -25,6 +30,7 @@ export default function Kanban() {
       
       if (foundProject) {
         setProject(foundProject);
+        updateTaskStats(projectId);
       } else {
         toast.error("Project not found");
         navigate('/dashboard'); // Redirect to dashboard if project doesn't exist
@@ -34,6 +40,68 @@ export default function Kanban() {
       navigate('/dashboard'); // Redirect to dashboard
     }
   }, [searchParams, navigate]);
+
+  // Function to update task statistics for the current project
+  const updateTaskStats = (projectId: string) => {
+    const projectTasks = localStorage.getItem(`tasks-${projectId}`);
+    if (projectTasks) {
+      const tasks = JSON.parse(projectTasks);
+      const totalTasks = tasks.length;
+      const completedTasks = tasks.filter((task: any) => task.status === "completed").length;
+      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+      
+      setTaskStats({
+        total: totalTasks,
+        completed: completedTasks,
+        progress: progress
+      });
+      
+      // Update project progress in projects list
+      updateProjectProgress(projectId, completedTasks, totalTasks, progress);
+    } else {
+      setTaskStats({
+        total: 0,
+        completed: 0,
+        progress: 0
+      });
+      
+      // Reset progress in project list
+      updateProjectProgress(projectId, 0, 0, 0);
+    }
+  };
+  
+  // Update project progress in localStorage
+  const updateProjectProgress = (
+    projectId: string, 
+    completed: number, 
+    total: number, 
+    progress: number
+  ) => {
+    const storedProjects = localStorage.getItem('projects');
+    if (storedProjects) {
+      const projects = JSON.parse(storedProjects);
+      const updatedProjects = projects.map((p: any) => {
+        if (p.id === projectId) {
+          return {
+            ...p,
+            tasksCompleted: completed,
+            totalTasks: total,
+            progress: progress
+          };
+        }
+        return p;
+      });
+      
+      localStorage.setItem('projects', JSON.stringify(updatedProjects));
+    }
+  };
+  
+  // Update task stats when tasks are modified in KanbanBoard component
+  const handleTasksChanged = () => {
+    if (project) {
+      updateTaskStats(project.id);
+    }
+  };
 
   if (!project) {
     return (
@@ -57,6 +125,11 @@ export default function Kanban() {
         <div className="mb-8">
           <h1 className="text-2xl font-medium">{project.title}</h1>
           <p className="text-muted-foreground">{project.description}</p>
+          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Progress: {taskStats.progress}%</span>
+            <span>•</span>
+            <span>{taskStats.completed}/{taskStats.total} tasks completed</span>
+          </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
@@ -74,7 +147,10 @@ export default function Kanban() {
           </TabsContent>
           
           <TabsContent value="tasks" className="mt-6">
-            <KanbanBoard projectId={project.id} />
+            <KanbanBoard 
+              projectId={project.id} 
+              onTasksChanged={handleTasksChanged}
+            />
           </TabsContent>
         </Tabs>
       </main>

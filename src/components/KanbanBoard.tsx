@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { KanbanColumn } from "./KanbanColumn";
 import { Plus, ListTodo, User, Calendar, ClipboardCheck, Users } from "lucide-react";
@@ -16,6 +15,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export interface KanbanBoardProps {
   projectId: string;
+  onTasksChanged?: () => void;
 }
 
 export interface Task {
@@ -37,7 +37,7 @@ export interface Task {
   }[];
 }
 
-export function KanbanBoard({ projectId }: KanbanBoardProps) {
+export function KanbanBoard({ projectId, onTasksChanged }: KanbanBoardProps) {
   // Check if there's a template to apply
   useEffect(() => {
     const templateToAdd = localStorage.getItem('templateToAdd');
@@ -258,6 +258,12 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
         return 'bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300';
     }
   };
+
+  useEffect(() => {
+    if (onTasksChanged) {
+      onTasksChanged();
+    }
+  }, [tasks, onTasksChanged]);
 
   return (
     <div className="mb-8">

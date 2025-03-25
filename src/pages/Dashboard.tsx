@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -25,7 +24,36 @@ export default function Dashboard() {
   useEffect(() => {
     const storedProjects = localStorage.getItem('projects');
     if (storedProjects) {
-      setProjects(JSON.parse(storedProjects));
+      const loadedProjects = JSON.parse(storedProjects);
+      
+      // Calculate progress for each project
+      const projectsWithProgress = loadedProjects.map((project: any) => {
+        const updatedProject = { ...project };
+        const projectTasks = localStorage.getItem(`tasks-${project.id}`);
+        
+        if (projectTasks) {
+          const tasks = JSON.parse(projectTasks);
+          const totalTasks = tasks.length;
+          const completedTasksCount = tasks.filter((task: any) => task.status === "completed").length;
+          
+          updatedProject.totalTasks = totalTasks;
+          updatedProject.tasksCompleted = completedTasksCount;
+          
+          // Calculate progress percentage
+          updatedProject.progress = totalTasks > 0 
+            ? Math.round((completedTasksCount / totalTasks) * 100) 
+            : 0;
+        } else {
+          // No tasks yet
+          updatedProject.totalTasks = 0;
+          updatedProject.tasksCompleted = 0;
+          updatedProject.progress = 0;
+        }
+        
+        return updatedProject;
+      });
+      
+      setProjects(projectsWithProgress);
     } else {
       // Initialize with empty array
       setProjects([]);
@@ -68,12 +96,23 @@ export default function Dashboard() {
   );
 
   const handleProjectCreate = (newProject: any) => {
-    const updatedProjects = [...projects, newProject];
+    // Initialize with zero progress
+    const projectWithProgress = {
+      ...newProject,
+      progress: 0,
+      tasksCompleted: 0,
+      totalTasks: 0
+    };
+    
+    const updatedProjects = [...projects, projectWithProgress];
     setProjects(updatedProjects);
     // Project is automatically saved to localStorage due to the useEffect above
   };
 
   const handleProjectDelete = (projectId: string) => {
+    // Delete project tasks from localStorage
+    localStorage.removeItem(`tasks-${projectId}`);
+    
     const updatedProjects = projects.filter(project => project.id !== projectId);
     setProjects(updatedProjects);
     // Projects automatically saved to localStorage due to useEffect
@@ -88,9 +127,18 @@ export default function Dashboard() {
   };
 
   const resetProjects = () => {
+    // Also remove all task data from localStorage
+    projects.forEach(project => {
+      localStorage.removeItem(`tasks-${project.id}`);
+    });
+    
     setProjects([]);
     toast.success("All projects have been removed");
     setCompletedTasks(0);
+  };
+
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/kanban?projectId=${projectId}`);
   };
 
   return (
@@ -203,8 +251,14 @@ export default function Dashboard() {
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <ProjectCard
-                    {...project}
-                    onClick={() => navigate(`/kanban?projectId=${project.id}`)}
+                    id={project.id}
+                    title={project.title}
+                    description={project.description}
+                    progress={project.progress || 0}
+                    dueDate={project.dueDate || "No deadline"}
+                    tasksCompleted={project.tasksCompleted || 0}
+                    totalTasks={project.totalTasks || 0}
+                    onClick={() => handleProjectClick(project.id)}
                     onDelete={handleProjectDelete}
                   />
                 </div>
