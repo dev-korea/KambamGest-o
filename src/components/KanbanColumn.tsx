@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TaskDetailModal } from "./TaskDetailModal";
-import { mapStatusToBoardFormat, mapStatusToColumnFormat } from "@/utils/taskStatusMapper";
+import { mapStatusToBoardFormat, mapStatusToColumnFormat, normalizeStatus } from "@/utils/taskStatusMapper";
 
 // Export the Task interface so it can be imported properly
 export interface Task {
@@ -28,6 +27,7 @@ export interface Task {
   }[];
   linkedProjects?: string[];
   collaborators?: string[];
+  completedDate?: string;
 }
 
 interface KanbanColumnProps {
@@ -83,10 +83,8 @@ export function KanbanColumn({
     }
   };
 
-  // Handler to manage modal open/close
   const handleDetailModalOpenChange = (open: boolean) => {
     setIsDetailModalOpen(open);
-    // Clean up selected task with a small delay to ensure modal closes first
     if (!open) {
       setTimeout(() => {
         setSelectedTask(null);
@@ -122,7 +120,10 @@ export function KanbanColumn({
               className="cursor-pointer"
             >
               <KanbanTask 
-                task={task} 
+                task={{
+                  ...task,
+                  status: normalizeStatus(task.status)
+                }} 
                 onUpdateNotes={onUpdateNotes}
                 onUpdateTask={onUpdateTask}
                 onDeleteTask={onDeleteTask}

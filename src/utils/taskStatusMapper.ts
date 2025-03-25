@@ -58,3 +58,62 @@ export function normalizeStatus(status: string): "todo" | "in-progress" | "revie
   }
   return "todo";
 }
+
+// Check if a task is overdue
+export function isTaskOverdue(dueDate: string): boolean {
+  if (!dueDate) return false;
+  
+  let taskDate: Date;
+  
+  // Handle different date formats (YYYY-MM-DD or DD/MM/YYYY)
+  if (dueDate.includes('/')) {
+    const [day, month, year] = dueDate.split('/').map(Number);
+    taskDate = new Date(year, month - 1, day);
+  } else {
+    taskDate = new Date(dueDate);
+  }
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  return taskDate < today;
+}
+
+// Check if a task is due today
+export function isTaskDueToday(dueDate: string): boolean {
+  if (!dueDate) return false;
+  
+  let taskDate: Date;
+  
+  // Handle different date formats (YYYY-MM-DD or DD/MM/YYYY)
+  if (dueDate.includes('/')) {
+    const [day, month, year] = dueDate.split('/').map(Number);
+    taskDate = new Date(year, month - 1, day);
+  } else {
+    taskDate = new Date(dueDate);
+  }
+  
+  const today = new Date();
+  
+  return taskDate.getDate() === today.getDate() && 
+         taskDate.getMonth() === today.getMonth() && 
+         taskDate.getFullYear() === today.getFullYear();
+}
+
+// Check if a task was completed yesterday
+export function wasCompletedYesterday(task: any): boolean {
+  if (task.status !== "completed" && task.status !== "completed") return false;
+  
+  // Check if the task has a completedDate field
+  if (task.completedDate) {
+    const completedDate = new Date(task.completedDate);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    return completedDate.getDate() === yesterday.getDate() && 
+           completedDate.getMonth() === yesterday.getMonth() && 
+           completedDate.getFullYear() === yesterday.getFullYear();
+  }
+  
+  return false;
+}

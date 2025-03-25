@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { ProjectCard } from "@/components/ProjectCard";
 import { CreateProjectModal } from "@/components/CreateProjectModal";
+import { DailyTaskOverview } from "@/components/DailyTaskOverview";
 import { Plus, Search, Filter, BarChart2, PieChart, CalendarDays, TabletSmartphone } from "lucide-react";
 import { 
   ToggleGroup, 
@@ -185,6 +186,10 @@ export default function Dashboard() {
                   />
                 </div>
               </div>
+            </div>
+            
+            <div className="mb-8">
+              <DailyTaskOverview className="glass-card" />
             </div>
             
             <div className="mb-4">

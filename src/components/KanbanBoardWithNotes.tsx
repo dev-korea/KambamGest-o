@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
@@ -8,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { undoSystem } from "@/utils/undoSystem";
-import { mapStatusToBoardFormat } from "@/utils/taskStatusMapper";
+import { mapStatusToBoardFormat, normalizeStatus } from "@/utils/taskStatusMapper";
 
 // Status types for the Kanban columns
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
@@ -152,10 +151,19 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       timestamp: Date.now()
     });
     
+    // Add completed date if task is being moved to completed
+    let taskUpdates: Partial<Task> = { status: targetColumnId as any };
+    if (targetColumnId === "completed") {
+      taskUpdates.completedDate = new Date().toISOString();
+    } else if (taskToUpdate.status === "completed") {
+      // If moving from completed to another status, remove completedDate
+      taskUpdates.completedDate = undefined;
+    }
+    
     // Create a new array with the updated task
     const updatedTasks = tasks.map(task => 
       task.id === taskId 
-        ? { ...task, status: targetColumnId as StatusType } 
+        ? { ...task, ...taskUpdates } 
         : task
     );
     
@@ -257,7 +265,8 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       tags: newTask.tags || [],
       assignee: newTask.assignee.name ? { name: newTask.assignee.name } : undefined,
       linkedProjects: newTask.linkedProjects || [],
-      collaborators: newTask.collaborators || []
+      collaborators: newTask.collaborators || [],
+      completedDate: newTask.status === "completed" ? new Date().toISOString() : undefined
     };
     
     // Add the task first
