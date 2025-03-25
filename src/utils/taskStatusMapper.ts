@@ -71,12 +71,12 @@ export function parseDateString(dateString: string | null | undefined): Date | n
   let result: Date | null = null;
 
   // If it's already a Date object
-  if (typeof dateString === 'object' && dateString instanceof Date) {
-    return isValid(dateString) ? dateString : null;
+  if (dateString && typeof dateString === 'object' && 'getTime' in dateString) {
+    return isValid(dateString as unknown as Date) ? dateString as unknown as Date : null;
   }
   
   // Try direct Date parsing for ISO format (YYYY-MM-DD)
-  if (dateString.includes('-')) {
+  if (typeof dateString === 'string' && dateString.includes('-')) {
     try {
       result = new Date(dateString);
       if (isValid(result)) return result;
@@ -91,7 +91,7 @@ export function parseDateString(dateString: string | null | undefined): Date | n
   }
   
   // Try DD/MM/YYYY format
-  if (dateString.includes('/')) {
+  if (typeof dateString === 'string' && dateString.includes('/')) {
     try {
       const parts = dateString.split('/');
       if (parts.length === 3) {
@@ -105,14 +105,18 @@ export function parseDateString(dateString: string | null | undefined): Date | n
   }
   
   // Try epoch timestamp
-  if (/^\d+$/.test(dateString)) {
+  if (typeof dateString === 'string' && /^\d+$/.test(dateString)) {
     result = new Date(parseInt(dateString));
     if (isValid(result)) return result;
   }
   
   // Last resort, try any format
-  result = new Date(dateString);
-  return isValid(result) ? result : null;
+  if (typeof dateString === 'string') {
+    result = new Date(dateString);
+    return isValid(result) ? result : null;
+  }
+  
+  return null;
 }
 
 // Format date consistently for display

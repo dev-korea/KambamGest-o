@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
@@ -68,7 +69,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-      }, 50);
+      }, 300);
     };
     
     window.addEventListener('kanban-data-update', handleUndoEvent as EventListener);
@@ -160,7 +161,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('taskUpdated'));
-    }, 10);
+    }, 100);
   };
 
   const handleDrop = (taskId: string, targetColumnId: string) => {
@@ -246,13 +247,20 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     saveTasks(updatedTasks);
     
     if (isDateChange) {
+      console.log("Date change detected in handleUpdateTask:", originalTask.dueDate, "->", updatedFields.dueDate);
+      
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('taskDateChanged'));
-      }, 10);
+      }, 100);
       
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-      }, 20);
+      }, 200);
+      
+      // One more for good measure, with a longer delay
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }, 500);
     }
   };
 

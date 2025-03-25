@@ -83,11 +83,11 @@ export function TaskDetailModal({
         // Force updates by dispatching multiple events with slight delays
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('taskDateChanged'));
-        }, 10);
+        }, 100);
         
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-        }, 20);
+        }, 200);
       }
       
       onOpenChange(false);

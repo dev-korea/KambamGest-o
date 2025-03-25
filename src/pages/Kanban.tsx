@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -50,26 +51,31 @@ export default function Kanban() {
     const handleTaskUpdated = () => {
       if (project) {
         console.log("Task updated event detected in Kanban, updating stats");
-        setTimeout(() => updateTaskStats(project.id), 50);
+        setTimeout(() => updateTaskStats(project.id), 100);
       }
     };
     
     const handleTaskDateChanged = () => {
       if (project) {
         console.log("Task date changed event detected in Kanban");
-        setTimeout(() => updateTaskStats(project.id), 100);
+        setTimeout(() => updateTaskStats(project.id), 200);
         
         // Ensure daily tasks view is refreshed
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-        }, 150);
+        }, 300);
       }
     };
     
     const handleDailyTasksRefresh = () => {
       if (project) {
         console.log("Daily tasks refresh requested in Kanban");
-        setTimeout(() => updateTaskStats(project.id), 200);
+        setTimeout(() => updateTaskStats(project.id), 300);
+        
+        // Send another refresh event for other components
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        }, 400);
       }
     };
     
@@ -152,8 +158,15 @@ export default function Kanban() {
     if (project) {
       updateTaskStats(project.id);
       
-      // Dispatch an event to ensure daily tasks are refreshed
-      window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      // Dispatch an event to ensure daily tasks are refreshed with sufficient delay
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }, 300);
+      
+      // Send another refresh event with a longer delay to catch any late updates
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }, 600);
     }
   }, [project, updateTaskStats]);
 
