@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { KanbanBoardWithNotes } from "@/components/KanbanBoardWithNotes";
@@ -45,23 +46,55 @@ export default function Kanban() {
     }
   }, [searchParams, navigate]);
 
+  // Event handlers for task updates
+  useEffect(() => {
+    const handleTaskUpdated = () => {
+      if (project) {
+        console.log("Task updated event detected in Kanban, updating stats");
+        updateTaskStats(project.id);
+      }
+    };
+    
+    const handleTaskDateChanged = () => {
+      if (project) {
+        console.log("Task date changed event detected in Kanban");
+        updateTaskStats(project.id);
+        
+        // Ensure daily tasks view is refreshed
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }
+    };
+    
+    window.addEventListener('taskUpdated', handleTaskUpdated);
+    window.addEventListener('taskDateChanged', handleTaskDateChanged);
+    
+    return () => {
+      window.removeEventListener('taskUpdated', handleTaskUpdated);
+      window.removeEventListener('taskDateChanged', handleTaskDateChanged);
+    };
+  }, [project]);
+
   // Function to update task statistics for the current project
-  const updateTaskStats = (projectId: string) => {
+  const updateTaskStats = useCallback((projectId: string) => {
     const projectTasks = localStorage.getItem(`tasks-${projectId}`);
     if (projectTasks) {
-      const tasks = JSON.parse(projectTasks);
-      const totalTasks = tasks.length;
-      const completedTasks = tasks.filter((task: any) => task.status === "completed").length;
-      const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-      
-      setTaskStats({
-        total: totalTasks,
-        completed: completedTasks,
-        progress: progress
-      });
-      
-      // Update project progress in projects list
-      updateProjectProgress(projectId, completedTasks, totalTasks, progress);
+      try {
+        const tasks = JSON.parse(projectTasks);
+        const totalTasks = tasks.length;
+        const completedTasks = tasks.filter((task: any) => task.status === "completed").length;
+        const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+        
+        setTaskStats({
+          total: totalTasks,
+          completed: completedTasks,
+          progress: progress
+        });
+        
+        // Update project progress in projects list
+        updateProjectProgress(projectId, completedTasks, totalTasks, progress);
+      } catch (error) {
+        console.error("Error processing tasks for stats:", error);
+      }
     } else {
       setTaskStats({
         total: 0,
@@ -72,43 +105,47 @@ export default function Kanban() {
       // Reset progress in project list
       updateProjectProgress(projectId, 0, 0, 0);
     }
-  };
+  }, []);
   
   // Update project progress in localStorage
-  const updateProjectProgress = (
+  const updateProjectProgress = useCallback((
     projectId: string, 
     completed: number, 
     total: number, 
     progress: number
   ) => {
-    const storedProjects = localStorage.getItem('projects');
-    if (storedProjects) {
-      const projects = JSON.parse(storedProjects);
-      const updatedProjects = projects.map((p: any) => {
-        if (p.id === projectId) {
-          return {
-            ...p,
-            tasksCompleted: completed,
-            totalTasks: total,
-            progress: progress
-          };
-        }
-        return p;
-      });
-      
-      localStorage.setItem('projects', JSON.stringify(updatedProjects));
+    try {
+      const storedProjects = localStorage.getItem('projects');
+      if (storedProjects) {
+        const projects = JSON.parse(storedProjects);
+        const updatedProjects = projects.map((p: any) => {
+          if (p.id === projectId) {
+            return {
+              ...p,
+              tasksCompleted: completed,
+              totalTasks: total,
+              progress: progress
+            };
+          }
+          return p;
+        });
+        
+        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+      }
+    } catch (error) {
+      console.error("Error updating project progress:", error);
     }
-  };
+  }, []);
   
   // Update task stats when tasks are modified in KanbanBoard component
-  const handleTasksChanged = () => {
+  const handleTasksChanged = useCallback(() => {
     if (project) {
       updateTaskStats(project.id);
       
       // Dispatch an event to ensure daily tasks are refreshed
       window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
     }
-  };
+  }, [project, updateTaskStats]);
 
   if (!project) {
     return (

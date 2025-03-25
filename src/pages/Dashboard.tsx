@@ -57,6 +57,22 @@ export default function Dashboard() {
     }
 
     countCompletedTasks();
+    
+    // Listen for task update events to refresh daily tasks
+    const handleTaskUpdate = () => {
+      console.log("Task update detected in Dashboard, refreshing data");
+      countCompletedTasks();
+    };
+    
+    window.addEventListener('taskUpdated', handleTaskUpdate);
+    window.addEventListener('taskDateChanged', handleTaskUpdate);
+    window.addEventListener('dailyTasksRefresh', handleTaskUpdate);
+    
+    return () => {
+      window.removeEventListener('taskUpdated', handleTaskUpdate);
+      window.removeEventListener('taskDateChanged', handleTaskUpdate);
+      window.removeEventListener('dailyTasksRefresh', handleTaskUpdate);
+    };
   }, []);
 
   const countCompletedTasks = () => {
@@ -287,4 +303,3 @@ function StatCard({ title, value, icon, trend, trendUp }: StatCardProps) {
     </div>
   );
 }
-

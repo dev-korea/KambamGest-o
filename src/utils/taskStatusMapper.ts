@@ -62,13 +62,18 @@ export function normalizeStatus(status: string): "todo" | "in-progress" | "revie
 }
 
 // Parse date from various formats to ensure consistency
-export function parseDateString(dateString: string): Date | null {
+export function parseDateString(dateString: string | null | undefined): Date | null {
   if (!dateString) return null;
   
   // Handle edge cases
   if (dateString === 'Invalid Date' || dateString === 'NaN') return null;
   
   let result: Date | null = null;
+
+  // If it's already a Date object
+  if (dateString instanceof Date) {
+    return isValid(dateString) ? dateString : null;
+  }
   
   // Try direct Date parsing for ISO format (YYYY-MM-DD)
   if (dateString.includes('-')) {
@@ -88,9 +93,12 @@ export function parseDateString(dateString: string): Date | null {
   // Try DD/MM/YYYY format
   if (dateString.includes('/')) {
     try {
-      const [day, month, year] = dateString.split('/').map(Number);
-      result = new Date(year, month - 1, day);
-      if (isValid(result)) return result;
+      const parts = dateString.split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts.map(Number);
+        result = new Date(year, month - 1, day);
+        if (isValid(result)) return result;
+      }
     } catch (e) {
       console.error("Error parsing date:", e);
     }
@@ -108,7 +116,7 @@ export function parseDateString(dateString: string): Date | null {
 }
 
 // Format date consistently for display
-export function formatDateForDisplay(date: Date | string | null): string {
+export function formatDateForDisplay(date: Date | string | null | undefined): string {
   if (!date) return "";
   
   const dateObj = typeof date === "string" ? parseDateString(date) : date;
@@ -121,7 +129,7 @@ export function formatDateForDisplay(date: Date | string | null): string {
 }
 
 // Check if a task is overdue
-export function isTaskOverdue(dueDate: string): boolean {
+export function isTaskOverdue(dueDate: string | null | undefined): boolean {
   if (!dueDate) return false;
   
   const taskDate = parseDateString(dueDate);
@@ -134,7 +142,7 @@ export function isTaskOverdue(dueDate: string): boolean {
 }
 
 // Check if a task is due today
-export function isTaskDueToday(dueDate: string): boolean {
+export function isTaskDueToday(dueDate: string | null | undefined): boolean {
   if (!dueDate) return false;
   
   const taskDate = parseDateString(dueDate);
@@ -153,8 +161,11 @@ export function wasCompletedYesterday(task: any): boolean {
   // Check if the task has a completedDate field
   if (task.completedDate) {
     try {
-      const completedDate = new Date(task.completedDate);
+      const completedDate = parseDateString(task.completedDate);
+      if (!completedDate) return false;
+      
       const yesterday = subDays(new Date(), 1);
+      yesterday.setHours(0, 0, 0, 0);
       
       return isSameDay(completedDate, yesterday);
     } catch (e) {
@@ -167,7 +178,7 @@ export function wasCompletedYesterday(task: any): boolean {
 }
 
 // Normalize date format for consistent storage - always use YYYY-MM-DD
-export function normalizeDate(date: Date | string | null): string {
+export function normalizeDate(date: Date | string | null | undefined): string {
   if (!date) return "";
   
   const dateObj = typeof date === "string" ? parseDateString(date) : date;
@@ -177,4 +188,16 @@ export function normalizeDate(date: Date | string | null): string {
   }
   
   return format(dateObj, 'yyyy-MM-dd');
+}
+
+// Compare two dates to see if they're the same (ignoring time)
+export function areDatesEqual(date1: string | Date | null | undefined, date2: string | Date | null | undefined): boolean {
+  if (!date1 || !date2) return date1 === date2;
+  
+  const parsed1 = parseDateString(date1);
+  const parsed2 = parseDateString(date2);
+  
+  if (!parsed1 || !parsed2) return false;
+  
+  return isSameDay(parsed1, parsed2);
 }

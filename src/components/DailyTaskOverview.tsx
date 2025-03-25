@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -41,34 +42,10 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
   const [todayTasks, setTodayTasks] = useState<TaskWithProject[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<TaskWithProject[]>([]);
   const [yesterdayCompletedTasks, setYesterdayCompletedTasks] = useState<TaskWithProject[]>([]);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [refreshCount, setRefreshCount] = useState(0);
   
-  useEffect(() => {
-    // Initial load
-    loadAllTasks();
-    
-    // Add event listeners for task updates
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('taskUpdated', loadAllTasks);
-    window.addEventListener('taskDateChanged', loadAllTasks);
-    window.addEventListener('dailyTasksRefresh', loadAllTasks);
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('taskUpdated', loadAllTasks);
-      window.removeEventListener('taskDateChanged', loadAllTasks);
-      window.removeEventListener('dailyTasksRefresh', loadAllTasks);
-    };
-  }, [refreshTrigger]);
-  
-  const handleStorageChange = (e: StorageEvent) => {
-    // Reload tasks when localStorage changes and key starts with 'tasks-'
-    if (e.key && e.key.startsWith('tasks-')) {
-      loadAllTasks();
-    }
-  };
-  
-  const loadAllTasks = () => {
+  // Create a memoized loadAllTasks function that doesn't change on every render
+  const loadAllTasks = useCallback(() => {
     try {
       console.log("Loading all tasks for daily overview");
       const projects = JSON.parse(localStorage.getItem('projects') || '[]');
@@ -80,6 +57,8 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
       
       // Loop through all projects and their tasks
       projects.forEach((project: any) => {
+        if (!project || !project.id) return;
+        
         const projectTasksKey = `tasks-${project.id}`;
         const projectTasks = localStorage.getItem(projectTasksKey);
         
@@ -94,7 +73,7 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
               const taskWithProject = {
                 ...task,
                 projectId: project.id,
-                projectName: project.title,
+                projectName: project.title || 'Projeto sem nome',
                 status: normalizeStatus(task.status)
               };
               
@@ -133,10 +112,67 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
       
     } catch (error) {
       console.error("Error loading tasks:", error);
-      // Force a refresh after a timeout if there's an error
-      setTimeout(() => setRefreshTrigger(prev => prev + 1), 500);
+      // Force a refresh on error, but limit it to avoid infinite loops
+      if (refreshCount < 3) {
+        setTimeout(() => setRefreshCount(prev => prev + 1), 500);
+      }
     }
-  };
+  }, [refreshCount]);
+  
+  useEffect(() => {
+    // Initial load
+    loadAllTasks();
+    
+    // Add event listeners for task updates with properly named functions
+    // to avoid anonymous function issues with event removal
+    const handleStorageChange = (e: StorageEvent) => {
+      // Reload tasks when localStorage changes and key starts with 'tasks-'
+      if (e.key && e.key.startsWith('tasks-')) {
+        console.log("Storage change detected for tasks, reloading daily overview");
+        loadAllTasks();
+      }
+    };
+    
+    const handleTaskUpdated = () => {
+      console.log("Task updated event detected, reloading daily overview");
+      loadAllTasks();
+    };
+    
+    const handleTaskDateChanged = () => {
+      console.log("Task date changed event detected, reloading daily overview");
+      loadAllTasks();
+    };
+    
+    const handleDailyTasksRefresh = () => {
+      console.log("Daily tasks refresh event detected");
+      loadAllTasks();
+    };
+    
+    // Add all event listeners
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('taskUpdated', handleTaskUpdated);
+    window.addEventListener('taskDateChanged', handleTaskDateChanged);
+    window.addEventListener('dailyTasksRefresh', handleDailyTasksRefresh);
+    
+    // Force refresh every time component mounts to ensure data is current
+    const refreshInterval = setInterval(() => {
+      loadAllTasks();
+    }, 60000); // Refresh every minute
+    
+    return () => {
+      // Remove all event listeners on cleanup
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('taskUpdated', handleTaskUpdated);
+      window.removeEventListener('taskDateChanged', handleTaskDateChanged);
+      window.removeEventListener('dailyTasksRefresh', handleDailyTasksRefresh);
+      clearInterval(refreshInterval);
+    };
+  }, [loadAllTasks]);
+  
+  // Force refresh when component is visible by adding refreshCount as a dependency
+  useEffect(() => {
+    loadAllTasks();
+  }, [refreshCount, loadAllTasks]);
   
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -288,7 +324,7 @@ function TaskItem({ task, priorityColor, isOverdue, completed }: TaskItemProps) 
       </div>
       <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
       <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
-        <span>Entrega: {task.dueDate}</span>
+        <span>Entrega: {formatDateForDisplay(task.dueDate)}</span>
         {task.assignee && <span>Responsável: {task.assignee.name}</span>}
       </div>
     </div>
