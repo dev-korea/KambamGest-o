@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +8,6 @@ import { useEffect, useState } from "react";
 import Dashboard from "./pages/Dashboard";
 import Kanban from "./pages/Kanban";
 import MyTasks from "./pages/MyTasks";
-import TaskTemplates from "./pages/TaskTemplates";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { TutorialModal } from "./components/TutorialModal";
@@ -22,7 +20,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   useEffect(() => {
-    // Check if user is logged in
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     setIsAuthenticated(isLoggedIn);
     setIsLoading(false);
@@ -61,12 +58,6 @@ const App = () => {
               <Route path="/kanban" element={
                 <ProtectedRoute>
                   <Kanban />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/task-templates" element={
-                <ProtectedRoute>
-                  <TaskTemplates />
                 </ProtectedRoute>
               } />
               

@@ -13,31 +13,12 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
+import { Task } from "@/components/KanbanColumn";
 
 interface Project {
   id: string;
   title: string;
   description: string;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  description?: string;
-  status: "todo" | "in-progress" | "review" | "completed";
-  priority: "low" | "medium" | "high";
-  dueDate?: string;
-  tags?: string[];
-  assignee?: {
-    name: string;
-    avatar?: string;
-  };
-  subtasks?: {
-    id: string;
-    title: string;
-    completed: boolean;
-  }[];
-  projectId: string;
 }
 
 export default function MyTasks() {
@@ -66,9 +47,16 @@ export default function MyTasks() {
         const tasks: Task[] = JSON.parse(projectTasks);
         
         // Filter tasks where the current user is assigned
-        const userTasks = tasks.filter(task => 
-          task.assignee?.name.toLowerCase() === username.toLowerCase()
-        ).map(task => ({
+        const userTasks = tasks.filter(task => {
+          // Check if user is the main assignee
+          const isAssignee = task.assignee?.name?.toLowerCase() === username.toLowerCase();
+          // Check if user is in the collaborators list
+          const isCollaborator = task.collaborators?.some(
+            collaborator => collaborator.toLowerCase() === username.toLowerCase()
+          );
+          
+          return isAssignee || isCollaborator;
+        }).map(task => ({
           ...task,
           projectId: project.id
         }));
@@ -308,8 +296,8 @@ export default function MyTasks() {
           >
             <TabsList className="grid grid-cols-4 w-full sm:w-auto">
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="todo">To Do</TabsTrigger>
-              <TabsTrigger value="in-progress">In Progress</TabsTrigger>
+              <TabsTrigger value="pending">To Do</TabsTrigger>
+              <TabsTrigger value="in_progress">In Progress</TabsTrigger>
               <TabsTrigger value="completed">Completed</TabsTrigger>
             </TabsList>
           </Tabs>
@@ -335,7 +323,7 @@ export default function MyTasks() {
                 ? "Try a different search term or filter" 
                 : selectedTab === "all" 
                   ? "You don't have any assigned tasks yet" 
-                  : `You don't have any ${selectedTab.replace('-', ' ')} tasks`}
+                  : `You don't have any ${selectedTab.replace('_', ' ')} tasks`}
             </p>
           </div>
         ) : (
@@ -404,12 +392,12 @@ export default function MyTasks() {
                       <span 
                         className={`px-2 py-0.5 rounded-full text-xs ${
                           task.status === "completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300" :
-                          task.status === "in-progress" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" :
-                          task.status === "review" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" :
+                          task.status === "in_progress" ? "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300" :
+                          task.status === "in_review" ? "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300" :
                           "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                         }`}
                       >
-                        {task.status.replace('-', ' ')}
+                        {task.status.replace('_', ' ')}
                       </span>
                     </div>
                   </div>
@@ -454,12 +442,12 @@ export default function MyTasks() {
                   <Badge className="w-full justify-center py-1" 
                     variant={
                       selectedTask.status === "completed" ? "outline" :
-                      selectedTask.status === "in-progress" ? "default" :
-                      selectedTask.status === "review" ? "secondary" :
+                      selectedTask.status === "in_progress" ? "default" :
+                      selectedTask.status === "in_review" ? "secondary" :
                       "outline"
                     }
                   >
-                    {selectedTask.status.replace('-', ' ')}
+                    {selectedTask.status.replace('_', ' ')}
                   </Badge>
                 </div>
                 
@@ -507,6 +495,19 @@ export default function MyTasks() {
                           {subtask.title}
                         </label>
                       </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedTask.collaborators && selectedTask.collaborators.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Collaborators</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTask.collaborators.map((collaborator) => (
+                      <Badge key={collaborator} variant="outline" className="px-2 py-1">
+                        {collaborator}
+                      </Badge>
                     ))}
                   </div>
                 </div>

@@ -1,5 +1,6 @@
+
 import { useNavigate, useLocation } from "react-router-dom";
-import { Menu, X, LayoutDashboard, Kanban, Settings, User, LogOut, Moon, Sun, FileCheck, CheckSquare } from "lucide-react";
+import { Menu, X, LayoutDashboard, Kanban, Settings, User, LogOut, Moon, Sun, CheckSquare } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
@@ -29,7 +30,6 @@ export function NavBar() {
   const navItems = [
     { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
     { name: "Kanban", path: "/kanban", icon: Kanban },
-    { name: "Task Templates", path: "/task-templates", icon: FileCheck },
     { name: "My Tasks", path: "/my-tasks", icon: CheckSquare },
   ];
 

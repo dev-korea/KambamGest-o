@@ -188,10 +188,10 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       status: newTask.status,
       priority: newTask.priority,
       dueDate: newTask.dueDate,
-      tags: [],
+      tags: newTask.tags || [],
       assignee: newTask.assignee.name ? { name: newTask.assignee.name } : undefined,
-      linkedProjects: [],
-      collaborators: []
+      linkedProjects: newTask.linkedProjects || [],
+      collaborators: newTask.collaborators || []
     };
     
     const updatedTasks = [...tasks, newTaskItem];
