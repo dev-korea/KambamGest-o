@@ -43,6 +43,23 @@ export function TaskDetailModal({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [newCollaborator, setNewCollaborator] = useState("");
+  const [collaboratorEmail, setCollaboratorEmail] = useState("");
+  const [registeredUsers, setRegisteredUsers] = useState<{name: string, email: string}[]>([]);
+  
+  // Load registered users from localStorage
+  useEffect(() => {
+    const storedUsers = localStorage.getItem('registeredUsers');
+    if (storedUsers) {
+      setRegisteredUsers(JSON.parse(storedUsers));
+    } else {
+      // Create a default entry if none exists
+      const defaultUsers = [
+        { name: localStorage.getItem('username') || "Guest User", email: "user@example.com" }
+      ];
+      localStorage.setItem('registeredUsers', JSON.stringify(defaultUsers));
+      setRegisteredUsers(defaultUsers);
+    }
+  }, []);
   
   // Carregar projetos do localStorage
   useEffect(() => {
@@ -104,18 +121,31 @@ export function TaskDetailModal({
   };
 
   const addCollaborator = () => {
-    if (!newCollaborator.trim()) return;
+    if (!collaboratorEmail.trim()) {
+      toast.error("Email é obrigatório");
+      return;
+    }
+    
+    // Check if email exists in registered users
+    const foundUser = registeredUsers.find(user => 
+      user.email.toLowerCase() === collaboratorEmail.toLowerCase()
+    );
+    
+    if (!foundUser) {
+      toast.error("Email não encontrado entre usuários registrados");
+      return;
+    }
     
     const collaborators = currentTask.collaborators || [];
-    if (collaborators.includes(newCollaborator)) {
+    if (collaborators.includes(foundUser.name)) {
       toast.error("Este colaborador já foi adicionado");
       return;
     }
     
-    const updatedCollaborators = [...collaborators, newCollaborator];
+    const updatedCollaborators = [...collaborators, foundUser.name];
     updateTask({ collaborators: updatedCollaborators });
-    setNewCollaborator("");
-    toast.success(`${newCollaborator} adicionado como colaborador`);
+    setCollaboratorEmail("");
+    toast.success(`${foundUser.name} adicionado como colaborador`);
   };
 
   const removeCollaborator = (name: string) => {
@@ -225,14 +255,6 @@ export function TaskDetailModal({
                   <span>{getStatusText(currentTask.status)}</span>
                 </div>
               </div>
-              
-              <Button 
-                variant="destructive" 
-                size="sm" 
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                Excluir
-              </Button>
             </div>
           </DialogHeader>
           
@@ -410,39 +432,61 @@ export function TaskDetailModal({
                     </SheetHeader>
                     
                     <div className="space-y-4 py-4">
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          value={newCollaborator}
-                          onChange={(e) => setNewCollaborator(e.target.value)}
-                          placeholder="Nome do colaborador"
-                          onKeyDown={(e) => e.key === "Enter" && addCollaborator()}
-                        />
-                        <Button onClick={addCollaborator}>Adicionar</Button>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Email do colaborador</label>
+                        <div className="flex items-center gap-2">
+                          <Input 
+                            value={collaboratorEmail}
+                            onChange={(e) => setCollaboratorEmail(e.target.value)}
+                            placeholder="Email do colaborador"
+                            type="email"
+                            onKeyDown={(e) => e.key === "Enter" && addCollaborator()}
+                          />
+                          <Button onClick={addCollaborator}>Adicionar</Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          O colaborador deve estar registrado na plataforma com este email
+                        </p>
                       </div>
                       
                       <div className="space-y-2 mt-4">
-                        {currentTask.collaborators && currentTask.collaborators.length > 0 ? (
-                          currentTask.collaborators.map(name => (
-                            <div 
-                              key={name} 
-                              className="flex items-center justify-between p-2 bg-muted rounded-md"
-                            >
-                              <span>{name}</span>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7" 
-                                onClick={() => removeCollaborator(name)}
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15"><path fill="currentColor" fillRule="evenodd" d="M11.782 4.032a.575.575 0 1 0-.813-.814L7.5 6.687L4.032 3.218a.575.575 0 0 0-.814.814L6.687 7.5l-3.469 3.468a.575.575 0 0 0 .814.814L7.5 8.313l3.469 3.469a.575.575 0 0 0 .813-.814L8.313 7.5l3.469-3.468Z" clipRule="evenodd"/></svg>
-                              </Button>
+                        <h4 className="text-sm font-medium">Usuários registrados disponíveis:</h4>
+                        <div className="max-h-20 overflow-y-auto space-y-1 p-2 bg-muted/30 rounded-md">
+                          {registeredUsers.map((user) => (
+                            <div key={user.email} className="text-xs text-muted-foreground flex justify-between">
+                              <span>{user.name}</span>
+                              <span>{user.email}</span>
                             </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            Nenhum colaborador adicionado
-                          </p>
-                        )}
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2 mt-4">
+                        <h4 className="text-sm font-medium">Colaboradores atuais:</h4>
+                        <div className="max-h-32 overflow-y-auto space-y-1">
+                          {currentTask.collaborators && currentTask.collaborators.length > 0 ? (
+                            currentTask.collaborators.map(name => (
+                              <div 
+                                key={name} 
+                                className="flex items-center justify-between bg-secondary/50 p-1.5 rounded text-sm"
+                              >
+                                <span>{name}</span>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-6 w-6" 
+                                  onClick={() => removeCollaborator(name)}
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15"><path fill="currentColor" fillRule="evenodd" d="M11.782 4.032a.575.575 0 1 0-.813-.814L7.5 6.687L4.032 3.218a.575.575 0 0 0-.814.814L6.687 7.5l-3.469 3.468a.575.575 0 0 0 .814.814L7.5 8.313l3.469 3.469a.575.575 0 0 0 .813-.814L8.313 7.5l3.469-3.468Z" clipRule="evenodd"/></svg>
+                                </Button>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground p-1">
+                              Nenhum colaborador adicionado
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -525,6 +569,22 @@ export function TaskDetailModal({
                   </div>
                 </div>
               )}
+              
+              {/* Delete button moved to bottom */}
+              <div className="pt-6 border-t border-border mt-6">
+                <Button 
+                  variant="destructive" 
+                  className="w-full"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <img 
+                    src="/lovable-uploads/a77a518b-858d-4fda-adbf-979be87b9644.png" 
+                    alt="Excluir"
+                    className="w-6 h-6 mr-2"
+                  />
+                  Excluir tarefa
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>

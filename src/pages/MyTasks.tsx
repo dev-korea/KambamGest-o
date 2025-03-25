@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,13 +20,15 @@ interface Project {
   description: string;
 }
 
+type TaskWithProject = Task & { projectId: string };
+
 export default function MyTasks() {
   const navigate = useNavigate();
-  const [myTasks, setMyTasks] = useState<Task[]>([]);
+  const [myTasks, setMyTasks] = useState<TaskWithProject[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTask, setSelectedTask] = useState<TaskWithProject | null>(null);
   const [username, setUsername] = useState(() => {
     return localStorage.getItem('username') || "Guest User";
   });
@@ -39,7 +40,7 @@ export default function MyTasks() {
     setProjects(allProjects);
     
     // Collect tasks assigned to current user from all projects
-    const assignedTasks: Task[] = [];
+    const assignedTasks: TaskWithProject[] = [];
     
     allProjects.forEach((project: Project) => {
       const projectTasks = localStorage.getItem(`tasks-${project.id}`);
@@ -48,9 +49,8 @@ export default function MyTasks() {
         
         // Filter tasks where the current user is assigned
         const userTasks = tasks.filter(task => {
-          // Check if user is the main assignee
+          // Case insensitive comparison for both assignee and collaborators
           const isAssignee = task.assignee?.name?.toLowerCase() === username.toLowerCase();
-          // Check if user is in the collaborators list
           const isCollaborator = task.collaborators?.some(
             collaborator => collaborator.toLowerCase() === username.toLowerCase()
           );
@@ -94,7 +94,7 @@ export default function MyTasks() {
     return Math.round((completedSubtasks / task.subtasks.length) * 100);
   };
   
-  const markTaskComplete = (task: Task) => {
+  const markTaskComplete = (task: TaskWithProject) => {
     // Update the task in the project's tasks
     const projectTasks = localStorage.getItem(`tasks-${task.projectId}`);
     if (projectTasks) {
@@ -158,7 +158,7 @@ export default function MyTasks() {
   
   const displayTasks = searchQuery ? filteredTasks : getTasksByStatus(selectedTab);
   
-  const handleTaskClick = (task: Task) => {
+  const handleTaskClick = (task: TaskWithProject) => {
     setSelectedTask(task);
   };
   
@@ -166,7 +166,7 @@ export default function MyTasks() {
     setSelectedTask(null);
   };
   
-  const updateTask = (updatedTask: Task) => {
+  const updateTask = (updatedTask: TaskWithProject) => {
     // Update the task in the project's tasks
     const projectTasks = localStorage.getItem(`tasks-${updatedTask.projectId}`);
     if (projectTasks) {
@@ -188,7 +188,6 @@ export default function MyTasks() {
     }
   };
   
-  // Calculate task statistics
   const totalTasks = myTasks.length;
   const completedTasks = myTasks.filter(t => t.status === "completed").length;
   const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;

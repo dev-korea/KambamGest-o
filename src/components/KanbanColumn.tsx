@@ -14,6 +14,7 @@ export interface Task {
   dueDate?: string;
   tags?: string[];
   notes?: string;
+  projectId?: string;
   assignee?: {
     name: string;
     avatar?: string;
