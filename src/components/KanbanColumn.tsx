@@ -22,6 +22,8 @@ export interface Task {
     title: string;
     completed: boolean;
   }[];
+  linkedProjects?: string[];
+  collaborators?: string[];
 }
 
 interface KanbanColumnProps {
@@ -31,6 +33,8 @@ interface KanbanColumnProps {
   onDrop: (taskId: string, columnId: string) => void;
   onTaskClick?: (task: Task) => void;
   onUpdateNotes?: (taskId: string, notes: string) => void;
+  onUpdateTask?: (taskId: string, updatedTask: Partial<Task>) => void;
+  onDeleteTask?: (taskId: string) => void;
 }
 
 export function KanbanColumn({ 
@@ -39,7 +43,9 @@ export function KanbanColumn({
   columnId, 
   onDrop,
   onTaskClick,
-  onUpdateNotes
+  onUpdateNotes,
+  onUpdateTask,
+  onDeleteTask
 }: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
   
@@ -92,6 +98,8 @@ export function KanbanColumn({
             <KanbanTask 
               task={task} 
               onUpdateNotes={onUpdateNotes}
+              onUpdateTask={onUpdateTask}
+              onDeleteTask={onDeleteTask}
             />
           </div>
         ))}

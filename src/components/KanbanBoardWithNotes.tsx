@@ -38,7 +38,9 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     tags: [] as string[],
     assignee: {
       name: ""
-    }
+    },
+    linkedProjects: [] as string[],
+    collaborators: [] as string[]
   });
   
   // Initial load of tasks
@@ -155,6 +157,23 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     saveTasks(updatedTasks);
   };
 
+  // Handle task update (for collaborators, linked projects, etc)
+  const handleUpdateTask = (taskId: string, updatedFields: Partial<Task>) => {
+    const updatedTasks = tasks.map(task => 
+      task.id === taskId 
+        ? { ...task, ...updatedFields } 
+        : task
+    );
+    
+    saveTasks(updatedTasks);
+  };
+
+  // Handle task deletion
+  const handleDeleteTask = (taskId: string) => {
+    const updatedTasks = tasks.filter(task => task.id !== taskId);
+    saveTasks(updatedTasks);
+  };
+
   // Add new task
   const addNewTask = () => {
     if (!newTask.title.trim()) {
@@ -171,6 +190,8 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       dueDate: newTask.dueDate,
       tags: [],
       assignee: newTask.assignee.name ? { name: newTask.assignee.name } : undefined,
+      linkedProjects: [],
+      collaborators: []
     };
     
     const updatedTasks = [...tasks, newTaskItem];
@@ -184,7 +205,9 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       status: "pending",
       dueDate: "",
       tags: [],
-      assignee: { name: "" }
+      assignee: { name: "" },
+      linkedProjects: [],
+      collaborators: []
     });
 
     toast.success("Tarefa adicionada com sucesso");
@@ -216,6 +239,8 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
             onDrop={handleDrop}
             onTaskClick={handleTaskClick}
             onUpdateNotes={handleUpdateNotes}
+            onUpdateTask={handleUpdateTask}
+            onDeleteTask={handleDeleteTask}
           />
         ))}
       </div>
