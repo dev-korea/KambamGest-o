@@ -50,3 +50,11 @@ export function isValidStatus(status: string): boolean {
     "pending", "in_progress", "in_review"
   ].includes(status);
 }
+
+// Helper function to ensure status is in a valid format
+export function normalizeStatus(status: string): "todo" | "in-progress" | "review" | "completed" | "pending" | "in_progress" | "in_review" {
+  if (isValidStatus(status)) {
+    return status as "todo" | "in-progress" | "review" | "completed" | "pending" | "in_progress" | "in_review";
+  }
+  return "todo";
+}

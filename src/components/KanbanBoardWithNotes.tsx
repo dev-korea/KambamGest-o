@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { undoSystem } from "@/utils/undoSystem";
+import { mapStatusToBoardFormat } from "@/utils/taskStatusMapper";
 
 // Status types for the Kanban columns
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
@@ -46,6 +48,19 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   // Initial load of tasks
   useEffect(() => {
     loadTasks();
+    
+    // Listen for undo events
+    const handleUndoEvent = (event: CustomEvent) => {
+      if (event.detail?.projectId === projectId) {
+        loadTasks();
+      }
+    };
+    
+    window.addEventListener('kanban-data-update', handleUndoEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('kanban-data-update', handleUndoEvent as EventListener);
+    };
   }, [projectId]);
   
   // Load tasks from localStorage
@@ -126,6 +141,17 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     // If task is already in the target column, do nothing
     if (taskToUpdate.status === targetColumnId) return;
     
+    // Save the previous state for undo
+    undoSystem.addAction({
+      type: 'MOVE_TASK',
+      projectId,
+      payload: {
+        taskId,
+        previousStatus: taskToUpdate.status
+      },
+      timestamp: Date.now()
+    });
+    
     // Create a new array with the updated task
     const updatedTasks = tasks.map(task => 
       task.id === taskId 
@@ -148,6 +174,18 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
 
   // Handle task notes update
   const handleUpdateNotes = (taskId: string, notes: string) => {
+    // Find the original task for undo
+    const originalTask = tasks.find(task => task.id === taskId);
+    if (!originalTask) return;
+    
+    // Save the original state for undo
+    undoSystem.addAction({
+      type: 'UPDATE_TASK',
+      projectId,
+      payload: { ...originalTask },
+      timestamp: Date.now()
+    });
+    
     const updatedTasks = tasks.map(task => 
       task.id === taskId 
         ? { ...task, notes } 
@@ -159,6 +197,18 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
 
   // Handle task update (for collaborators, linked projects, etc)
   const handleUpdateTask = (taskId: string, updatedFields: Partial<Task>) => {
+    // Find the original task for undo
+    const originalTask = tasks.find(task => task.id === taskId);
+    if (!originalTask) return;
+    
+    // Save the original state for undo
+    undoSystem.addAction({
+      type: 'UPDATE_TASK',
+      projectId,
+      payload: { ...originalTask },
+      timestamp: Date.now()
+    });
+    
     const updatedTasks = tasks.map(task => 
       task.id === taskId 
         ? { ...task, ...updatedFields } 
@@ -170,8 +220,24 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
 
   // Handle task deletion
   const handleDeleteTask = (taskId: string) => {
+    // Find the task to be deleted for undo
+    const taskToDelete = tasks.find(task => task.id === taskId);
+    if (!taskToDelete) return;
+    
+    // Save the deleted task for potential undo
+    undoSystem.addAction({
+      type: 'DELETE_TASK',
+      projectId,
+      payload: { ...taskToDelete },
+      timestamp: Date.now()
+    });
+    
     const updatedTasks = tasks.filter(task => task.id !== taskId);
     saveTasks(updatedTasks);
+    
+    toast.success("Tarefa excluída", {
+      description: "Pressione Ctrl+Z para desfazer esta ação"
+    });
   };
 
   // Add new task
@@ -194,8 +260,17 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       collaborators: newTask.collaborators || []
     };
     
+    // Add the task first
     const updatedTasks = [...tasks, newTaskItem];
     saveTasks(updatedTasks);
+    
+    // Register the action for potential undo
+    undoSystem.addAction({
+      type: 'ADD_TASK',
+      projectId,
+      payload: newTaskItem.id,
+      timestamp: Date.now()
+    });
     
     setNewTaskOpen(false);
     setNewTask({

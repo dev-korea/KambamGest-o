@@ -13,6 +13,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { Task } from "@/components/KanbanColumn";
+import { undoSystem } from "@/utils/undoSystem";
+import { mapStatusToBoardFormat, mapStatusToColumnFormat } from "@/utils/taskStatusMapper";
 
 interface Project {
   id: string;
@@ -34,6 +36,24 @@ export default function MyTasks() {
   });
   
   useEffect(() => {
+    // Setup undo system listener
+    const handleUndoEvent = () => {
+      // Reload all tasks when an undo action happens
+      loadUserTasks();
+    };
+    
+    window.addEventListener('kanban-data-update', handleUndoEvent as EventListener);
+    
+    // Load tasks on init
+    loadUserTasks();
+    
+    return () => {
+      window.removeEventListener('kanban-data-update', handleUndoEvent as EventListener);
+    };
+  }, [username]);
+  
+  // Load all user tasks
+  const loadUserTasks = () => {
     // Get all projects
     const storedProjects = localStorage.getItem('projects');
     const allProjects = storedProjects ? JSON.parse(storedProjects) : [];
@@ -45,28 +65,34 @@ export default function MyTasks() {
     allProjects.forEach((project: Project) => {
       const projectTasks = localStorage.getItem(`tasks-${project.id}`);
       if (projectTasks) {
-        const tasks: Task[] = JSON.parse(projectTasks);
-        
-        // Filter tasks where the current user is assigned
-        const userTasks = tasks.filter(task => {
-          // Case insensitive comparison for both assignee and collaborators
-          const isAssignee = task.assignee?.name?.toLowerCase() === username.toLowerCase();
-          const isCollaborator = task.collaborators?.some(
-            collaborator => collaborator.toLowerCase() === username.toLowerCase()
-          );
+        try {
+          const tasks: Task[] = JSON.parse(projectTasks);
           
-          return isAssignee || isCollaborator;
-        }).map(task => ({
-          ...task,
-          projectId: project.id
-        }));
-        
-        assignedTasks.push(...userTasks);
+          // Filter tasks where the current user is assigned
+          const userTasks = tasks
+            .filter(task => {
+              // Case insensitive comparison for both assignee and collaborators
+              const isAssignee = task.assignee?.name?.toLowerCase() === username.toLowerCase();
+              const isCollaborator = task.collaborators?.some(
+                collaborator => collaborator.toLowerCase() === username.toLowerCase()
+              );
+              
+              return isAssignee || isCollaborator;
+            })
+            .map(task => ({
+              ...task,
+              projectId: project.id
+            }));
+          
+          assignedTasks.push(...userTasks);
+        } catch (error) {
+          console.error(`Error parsing tasks for project ${project.id}:`, error);
+        }
       }
     });
     
     setMyTasks(assignedTasks);
-  }, [username]);
+  };
 
   const getTasksByStatus = (status: string | string[]) => {
     if (status === "all") {
@@ -95,10 +121,22 @@ export default function MyTasks() {
   };
   
   const markTaskComplete = (task: TaskWithProject) => {
-    // Update the task in the project's tasks
+    // Get original task for undo
     const projectTasks = localStorage.getItem(`tasks-${task.projectId}`);
     if (projectTasks) {
       const tasks: Task[] = JSON.parse(projectTasks);
+      const originalTask = tasks.find(t => t.id === task.id);
+      
+      if (originalTask) {
+        // Save for undo
+        undoSystem.addAction({
+          type: 'UPDATE_TASK',
+          projectId: task.projectId,
+          payload: { ...originalTask },
+          timestamp: Date.now()
+        });
+      }
+      
       const updatedTasks = tasks.map(t => 
         t.id === task.id ? { ...t, status: "completed" } : t
       );
@@ -111,7 +149,9 @@ export default function MyTasks() {
       );
       
       setMyTasks(updatedMyTasks);
-      toast.success("Task marked as completed");
+      toast.success("Task marked as completed", {
+        description: "Pressione Ctrl+Z para desfazer"
+      });
     }
   };
   
@@ -119,6 +159,17 @@ export default function MyTasks() {
     // Find the task
     const taskIndex = myTasks.findIndex(t => t.id === taskId);
     if (taskIndex === -1 || !myTasks[taskIndex].subtasks) return;
+    
+    // Get original task for undo
+    const originalTask = { ...myTasks[taskIndex] };
+    
+    // Save for undo
+    undoSystem.addAction({
+      type: 'UPDATE_TASK',
+      projectId: originalTask.projectId,
+      payload: originalTask,
+      timestamp: Date.now()
+    });
     
     // Create updated task
     const updatedTask = { ...myTasks[taskIndex] };
@@ -147,7 +198,7 @@ export default function MyTasks() {
     localStorage.setItem('username', username);
     toast.success("Username saved successfully");
     // Refresh tasks with new username
-    window.location.reload();
+    loadUserTasks();
   };
   
   const filteredTasks = myTasks.filter(task => 

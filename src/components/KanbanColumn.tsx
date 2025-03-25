@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TaskDetailModal } from "./TaskDetailModal";
+import { mapStatusToBoardFormat, mapStatusToColumnFormat } from "@/utils/taskStatusMapper";
 
 // Export the Task interface so it can be imported properly
 export interface Task {
