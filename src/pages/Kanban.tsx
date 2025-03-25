@@ -6,12 +6,14 @@ import { KanbanBoardWithNotes } from "@/components/KanbanBoardWithNotes";
 import { ProjectOverview } from "@/components/ProjectOverview";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Kanban() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [project, setProject] = useState<{id: string; title: string; description: string} | null>(null);
   const [activeTab, setActiveTab] = useState("tasks");
+  const isMobile = useIsMobile();
   const [taskStats, setTaskStats] = useState({
     total: 0,
     completed: 0,
@@ -107,9 +109,9 @@ export default function Kanban() {
     return (
       <div className="min-h-screen bg-background">
         <NavBar />
-        <main className="container px-6 py-8 mx-auto pt-24">
+        <main className="container px-4 md:px-6 py-6 md:py-8 mx-auto pt-20 md:pt-24">
           <div className="text-center">
-            <h1 className="text-2xl font-medium mb-4">Projeto Não Encontrado</h1>
+            <h1 className="text-xl md:text-2xl font-medium mb-3 md:mb-4">Projeto Não Encontrado</h1>
             <p className="text-muted-foreground">Por favor, selecione um projeto no painel.</p>
           </div>
         </main>
@@ -121,24 +123,24 @@ export default function Kanban() {
     <div className="min-h-screen bg-background">
       <NavBar />
       
-      <main className="container px-6 pt-24 mx-auto">
-        <div className="mb-8">
-          <h1 className="text-2xl font-medium">{project.title}</h1>
-          <p className="text-muted-foreground">{project.description}</p>
-          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+      <main className="container px-4 md:px-6 pt-20 md:pt-24 mx-auto">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-2xl font-medium">{project.title}</h1>
+          <p className="text-muted-foreground text-sm md:text-base">{project.description}</p>
+          <div className="mt-2 flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
             <span>Progresso: {taskStats.progress}%</span>
             <span>•</span>
             <span>{taskStats.completed}/{taskStats.total} tarefas concluídas</span>
           </div>
         </div>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
-          <TabsList>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6 md:mb-8">
+          <TabsList className={isMobile ? "grid grid-cols-2 w-full" : ""}>
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="tasks">Quadro de Tarefas</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="overview" className="mt-6">
+          <TabsContent value="overview" className="mt-4 md:mt-6">
             <ProjectOverview 
               projectId={project.id} 
               projectTitle={project.title} 
@@ -146,7 +148,7 @@ export default function Kanban() {
             />
           </TabsContent>
           
-          <TabsContent value="tasks" className="mt-6">
+          <TabsContent value="tasks" className="mt-4 md:mt-6">
             <KanbanBoardWithNotes 
               projectId={project.id} 
               onTasksChanged={handleTasksChanged}

@@ -6,13 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { Calendar as CalendarIcon, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Task } from "./KanbanColumn";
 import { toast } from "sonner";
+import { Calendar } from "@/components/ui/calendar";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface TaskDetailModalProps {
   task: Task;
@@ -31,12 +32,18 @@ export function TaskDetailModal({
 }: TaskDetailModalProps) {
   const [editedTask, setEditedTask] = useState<Task>({ ...task });
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    task.dueDate ? new Date(task.dueDate) : undefined
+    task.dueDate ? 
+      (task.dueDate.includes('/') ? 
+        parse(task.dueDate, 'dd/MM/yyyy', new Date()) : 
+        new Date(task.dueDate)
+      ) : 
+      undefined
   );
   const [newSubtask, setNewSubtask] = useState("");
   const [newTag, setNewTag] = useState("");
   const [activeTab, setActiveTab] = useState("details");
   const [users, setUsers] = useState<{name: string, email: string}[]>([]);
+  const isMobile = useIsMobile();
 
   // Load registered users for assignee dropdown
   useState(() => {
@@ -129,13 +136,13 @@ export function TaskDetailModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{task.title}</DialogTitle>
         </DialogHeader>
         
         <Tabs defaultValue="details" onValueChange={setActiveTab} value={activeTab}>
-          <TabsList className="grid grid-cols-3">
+          <TabsList className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-3'}`}>
             <TabsTrigger value="details">Detalhes</TabsTrigger>
             <TabsTrigger value="subtasks">Subtarefas</TabsTrigger>
             <TabsTrigger value="tags">Tags</TabsTrigger>
@@ -159,7 +166,7 @@ export function TaskDetailModal({
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-4'}`}>
               <div>
                 <label className="text-sm font-medium mb-1 block">Status</label>
                 <select
@@ -223,7 +230,7 @@ export function TaskDetailModal({
                     {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Selecione uma data"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0 pointer-events-auto">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -237,6 +244,7 @@ export function TaskDetailModal({
                       }
                     }}
                     initialFocus
+                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
@@ -281,7 +289,7 @@ export function TaskDetailModal({
                       />
                       <label 
                         htmlFor={subtask.id} 
-                        className={`text-sm ${subtask.completed ? 'line-through text-muted-foreground' : ''}`}
+                        className={`text-sm flex-1 ${subtask.completed ? 'line-through text-muted-foreground' : ''}`}
                       >
                         {subtask.title}
                       </label>
@@ -344,11 +352,11 @@ export function TaskDetailModal({
           </Button>
         </div>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className={isMobile ? "flex-col gap-2" : ""}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? "w-full" : ""}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} className={isMobile ? "w-full" : ""}>
             Salvar alterações
           </Button>
         </DialogFooter>

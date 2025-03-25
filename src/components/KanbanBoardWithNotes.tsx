@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
@@ -8,6 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { undoSystem } from "@/utils/undoSystem";
 import { mapStatusToBoardFormat, normalizeStatus } from "@/utils/taskStatusMapper";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 
 // Status types for the Kanban columns
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
@@ -30,6 +36,9 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   // State for the tasks in the board
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const isMobile = useIsMobile();
+  
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
@@ -293,6 +302,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       linkedProjects: [],
       collaborators: []
     });
+    setSelectedDate(undefined);
 
     toast.success("Tarefa adicionada com sucesso");
   };
@@ -304,16 +314,16 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   }, {});
   
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-medium">Quadro de Tarefas</h2>
-        <Button onClick={() => setNewTaskOpen(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
+    <div className="flex flex-col gap-4 md:gap-6">
+      <div className="flex justify-between items-center mb-2 md:mb-4">
+        <h2 className="text-lg md:text-xl font-medium">Quadro de Tarefas</h2>
+        <Button onClick={() => setNewTaskOpen(true)} className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm">
+          <Plus className="h-3 w-3 md:h-4 md:w-4" />
           <span>Adicionar Tarefa</span>
         </Button>
       </div>
 
-      <div className="flex gap-6 overflow-x-auto pb-8">
+      <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 md:gap-6 ${isMobile ? '' : 'overflow-x-auto'} pb-4 md:pb-8`}>
         {columns.map(column => (
           <KanbanColumn
             key={column.id}
@@ -331,7 +341,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
 
       {/* Nova Tarefa Dialog */}
       <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className={`max-w-md max-h-[90vh] ${isMobile ? 'w-[95%] p-4' : ''} overflow-y-auto`}>
           <DialogHeader>
             <DialogTitle>Adicionar Nova Tarefa</DialogTitle>
           </DialogHeader>
@@ -362,7 +372,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-4'}`}>
               <div>
                 <label htmlFor="status" className="text-sm font-medium block mb-1">
                   Status
@@ -413,20 +423,39 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
               <label htmlFor="dueDate" className="text-sm font-medium block mb-1">
                 Data de Entrega
               </label>
-              <Input 
-                id="dueDate"
-                type="date"
-                value={newTask.dueDate}
-                onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
-              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={`w-full justify-start text-left font-normal ${!selectedDate && "text-muted-foreground"}`}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Selecione uma data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(date) => {
+                      setSelectedDate(date);
+                      if (date) {
+                        setNewTask({...newTask, dueDate: format(date, 'yyyy-MM-dd')});
+                      }
+                    }}
+                    initialFocus
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setNewTaskOpen(false)}>
+          <DialogFooter className={isMobile ? "flex-col gap-2" : ""}>
+            <Button variant="outline" onClick={() => setNewTaskOpen(false)} className={isMobile ? "w-full" : ""}>
               Cancelar
             </Button>
-            <Button onClick={addNewTask}>
+            <Button onClick={addNewTask} className={isMobile ? "w-full" : ""}>
               Adicionar Tarefa
             </Button>
           </DialogFooter>

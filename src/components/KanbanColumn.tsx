@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TaskDetailModal } from "./TaskDetailModal";
 import { mapStatusToBoardFormat, mapStatusToColumnFormat, normalizeStatus } from "@/utils/taskStatusMapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Export the Task interface so it can be imported properly
 export interface Task {
@@ -54,6 +56,7 @@ export function KanbanColumn({
   const [isOver, setIsOver] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -96,21 +99,21 @@ export function KanbanColumn({
     <>
       <div 
         className={cn(
-          "kanban-column min-w-[280px] p-4 rounded-lg bg-background border border-border transition-colors animate-fade-in",
+          "kanban-column min-w-[250px] w-full md:min-w-[280px] md:w-auto p-3 md:p-4 rounded-lg bg-background border border-border transition-colors animate-fade-in",
           isOver && "bg-secondary/80 border border-primary/20"
         )}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-medium">{title}</h3>
+        <div className="flex justify-between items-center mb-3 md:mb-4">
+          <h3 className="font-medium text-sm md:text-base">{title}</h3>
           <div className="bg-muted rounded-full px-2 py-0.5 text-xs font-medium">
             {tasks.length}
           </div>
         </div>
         
-        <div className="space-y-3">
+        <div className="space-y-2 md:space-y-3">
           {tasks.map((task) => (
             <div 
               key={task.id}

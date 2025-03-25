@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { Task } from "@/components/KanbanColumn";
 import { undoSystem } from "@/utils/undoSystem";
 import { mapStatusToBoardFormat, mapStatusToColumnFormat } from "@/utils/taskStatusMapper";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Project {
   id: string;
@@ -31,6 +33,7 @@ export default function MyTasks() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTab, setSelectedTab] = useState("all");
   const [selectedTask, setSelectedTask] = useState<TaskWithProject | null>(null);
+  const isMobile = useIsMobile();
   const [username, setUsername] = useState(() => {
     return localStorage.getItem('username') || "Guest User";
   });
@@ -143,7 +146,7 @@ export default function MyTasks() {
       
       localStorage.setItem(`tasks-${task.projectId}`, JSON.stringify(updatedTasks));
       
-      // Update in myTasks state
+      // Update in myTasks state - create a new array to ensure type safety
       const updatedMyTasks = myTasks.map(t => 
         t.id === task.id ? { ...t, status: "completed" } : t
       );
@@ -188,7 +191,7 @@ export default function MyTasks() {
       localStorage.setItem(`tasks-${updatedTask.projectId}`, JSON.stringify(updatedTasks));
     }
     
-    // Update in myTasks state
+    // Create a new array and update the specific task
     const updatedMyTasks = [...myTasks];
     updatedMyTasks[taskIndex] = updatedTask;
     setMyTasks(updatedMyTasks);
@@ -228,7 +231,7 @@ export default function MyTasks() {
       
       localStorage.setItem(`tasks-${updatedTask.projectId}`, JSON.stringify(updatedTasks));
       
-      // Update in myTasks state
+      // Create a new array and update the specific task
       const updatedMyTasks = myTasks.map(t => 
         t.id === updatedTask.id ? updatedTask : t
       );
@@ -253,35 +256,35 @@ export default function MyTasks() {
     <div className="min-h-screen bg-background">
       <NavBar />
       
-      <main className="container px-6 pt-24 pb-8 mx-auto">
-        <div className="mb-8 animate-fade-in">
+      <main className="container px-4 md:px-6 pt-20 md:pt-24 pb-6 md:pb-8 mx-auto">
+        <div className="mb-6 md:mb-8 animate-fade-in">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-medium">My Tasks</h1>
-              <p className="text-muted-foreground">View and manage all your assigned tasks</p>
+              <h1 className="text-xl md:text-2xl font-medium">My Tasks</h1>
+              <p className="text-muted-foreground text-sm md:text-base">View and manage all your assigned tasks</p>
             </div>
             
             <div className="flex gap-2 items-center">
               <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-7 w-7 md:h-8 md:w-8">
                   <AvatarFallback>{username.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <Input 
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-auto max-w-[200px]"
+                  className="w-auto max-w-[140px] md:max-w-[200px] text-sm md:text-base"
                   placeholder="Your name"
                 />
               </div>
-              <Button size="sm" onClick={saveUsername}>Save</Button>
+              <Button size={isMobile ? "sm" : "default"} onClick={saveUsername}>Save</Button>
             </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-3 gap-6'} mb-6 md:mb-8`}>
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 animate-scale-in">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Tasks Overview</CardTitle>
+              <CardTitle className="text-base md:text-lg">Tasks Overview</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between mb-2">
@@ -291,11 +294,11 @@ export default function MyTasks() {
               <Progress value={completionRate} className="h-2 mb-4" />
               <div className="grid grid-cols-2 gap-4 text-center">
                 <div>
-                  <div className="text-2xl font-semibold">{totalTasks}</div>
+                  <div className="text-xl md:text-2xl font-semibold">{totalTasks}</div>
                   <div className="text-xs text-muted-foreground">Total Tasks</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-semibold">{completedTasks}</div>
+                  <div className="text-xl md:text-2xl font-semibold">{completedTasks}</div>
                   <div className="text-xs text-muted-foreground">Completed</div>
                 </div>
               </div>
@@ -304,18 +307,18 @@ export default function MyTasks() {
           
           <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 animate-scale-in" style={{ animationDelay: "100ms" }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Due Soon</CardTitle>
+              <CardTitle className="text-base md:text-lg">Due Soon</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center h-24">
                 {upcomingDeadlines > 0 ? (
                   <div className="text-center">
-                    <div className="text-3xl font-semibold">{upcomingDeadlines}</div>
+                    <div className="text-2xl md:text-3xl font-semibold">{upcomingDeadlines}</div>
                     <div className="text-sm text-muted-foreground">tasks due this week</div>
                   </div>
                 ) : (
                   <div className="text-center text-muted-foreground">
-                    <CheckCircle2 className="h-10 w-10 mx-auto mb-2 text-emerald-500" />
+                    <CheckCircle2 className="h-8 w-8 md:h-10 md:w-10 mx-auto mb-2 text-emerald-500" />
                     <div className="text-sm">No upcoming deadlines</div>
                   </div>
                 )}
@@ -325,12 +328,12 @@ export default function MyTasks() {
           
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 animate-scale-in" style={{ animationDelay: "200ms" }}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Projects</CardTitle>
+              <CardTitle className="text-base md:text-lg">Projects</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-center h-24">
                 <div className="text-center">
-                  <div className="text-3xl font-semibold">{projects.length}</div>
+                  <div className="text-2xl md:text-3xl font-semibold">{projects.length}</div>
                   <div className="text-sm text-muted-foreground">active projects</div>
                 </div>
               </div>
@@ -344,15 +347,21 @@ export default function MyTasks() {
             onValueChange={setSelectedTab}
             className="w-full sm:w-auto"
           >
-            <TabsList className="grid grid-cols-4 w-full sm:w-auto">
+            <TabsList className={`grid ${isMobile ? 'grid-cols-2 gap-2 mb-2' : 'grid-cols-4'} w-full sm:w-auto`}>
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="pending">To Do</TabsTrigger>
-              <TabsTrigger value="in_progress">In Progress</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
+              {!isMobile && <TabsTrigger value="in_progress">In Progress</TabsTrigger>}
+              {!isMobile && <TabsTrigger value="completed">Completed</TabsTrigger>}
             </TabsList>
+            {isMobile && (
+              <TabsList className="grid grid-cols-2 gap-2 w-full">
+                <TabsTrigger value="in_progress">In Progress</TabsTrigger>
+                <TabsTrigger value="completed">Completed</TabsTrigger>
+              </TabsList>
+            )}
           </Tabs>
           
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
@@ -365,10 +374,10 @@ export default function MyTasks() {
         </div>
         
         {displayTasks.length === 0 ? (
-          <div className="text-center py-16 animate-fade-in">
-            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-medium mb-2">No tasks found</h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
+          <div className="text-center py-10 md:py-16 animate-fade-in">
+            <AlertCircle className="h-10 w-10 md:h-12 md:w-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-lg md:text-xl font-medium mb-2">No tasks found</h2>
+            <p className="text-muted-foreground max-w-md mx-auto text-sm md:text-base">
               {searchQuery 
                 ? "Try a different search term or filter" 
                 : selectedTab === "all" 
@@ -377,7 +386,7 @@ export default function MyTasks() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'md:grid-cols-2 lg:grid-cols-3 gap-6'}`}>
             {displayTasks.map((task, index) => (
               <Card 
                 key={task.id} 
@@ -387,13 +396,14 @@ export default function MyTasks() {
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg font-medium line-clamp-1">{task.title}</CardTitle>
+                    <CardTitle className="text-base md:text-lg font-medium line-clamp-1">{task.title}</CardTitle>
                     <Badge 
                       variant={
                         task.priority === "high" ? "destructive" : 
                         task.priority === "medium" ? "default" : 
                         "secondary"
                       }
+                      className="text-xs"
                     >
                       {task.priority}
                     </Badge>
@@ -402,7 +412,7 @@ export default function MyTasks() {
                 </CardHeader>
                 
                 <CardContent className="pb-3">
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                  <p className="text-xs md:text-sm text-muted-foreground mb-3 line-clamp-2">
                     {task.description || "No description provided"}
                   </p>
                   
@@ -461,7 +471,7 @@ export default function MyTasks() {
       {/* Task Detail Dialog */}
       {selectedTask && (
         <Dialog open={!!selectedTask} onOpenChange={closeTaskDetail}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className={`max-w-lg max-h-[90vh] ${isMobile ? 'w-[95%] p-4' : ''} overflow-y-auto`}>
             <DialogHeader>
               <DialogTitle className="flex justify-between items-start gap-2">
                 <span>{selectedTask.title}</span>
@@ -486,7 +496,7 @@ export default function MyTasks() {
                 <p className="text-sm">{selectedTask.description || "No description provided"}</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-4'}`}>
                 <div>
                   <h3 className="text-sm font-medium mb-1">Status</h3>
                   <Badge className="w-full justify-center py-1" 
@@ -564,10 +574,10 @@ export default function MyTasks() {
               )}
             </div>
             
-            <DialogFooter className="flex-col sm:flex-row gap-2">
+            <DialogFooter className={isMobile ? "flex-col gap-2" : "flex-row gap-2"}>
               <Button 
                 variant="outline" 
-                className="w-full sm:w-auto"
+                className={isMobile ? "w-full" : "w-auto"}
                 onClick={() => navigate(`/kanban?projectId=${selectedTask.projectId}`)}
               >
                 Go to Project
@@ -575,7 +585,7 @@ export default function MyTasks() {
               
               {selectedTask.status !== "completed" && (
                 <Button 
-                  className="w-full sm:w-auto"
+                  className={isMobile ? "w-full" : "w-auto"}
                   onClick={() => markTaskComplete(selectedTask)}
                 >
                   Mark as Complete
