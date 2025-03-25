@@ -2,17 +2,17 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TaskDetailModal } from "./TaskDetailModal";
 
 // Export the Task interface so it can be imported properly
 export interface Task {
   id: string;
   title: string;
-  description?: string;
+  description: string;
   priority: "low" | "medium" | "high";
-  status: "pending" | "in_progress" | "in_review" | "completed";
-  dueDate?: string;
+  status: "todo" | "in-progress" | "review" | "completed" | "pending" | "in_progress" | "in_review";
+  dueDate: string;
   tags?: string[];
   notes?: string;
   projectId?: string;
@@ -82,14 +82,14 @@ export function KanbanColumn({
     }
   };
 
-  // Handler para o onOpenChange do TaskDetailModal
+  // Handler to manage modal open/close
   const handleDetailModalOpenChange = (open: boolean) => {
     setIsDetailModalOpen(open);
-    // Se fechando o modal, limpar a tarefa selecionada após pequeno delay
+    // Clean up selected task with a small delay to ensure modal closes first
     if (!open) {
       setTimeout(() => {
         setSelectedTask(null);
-      }, 300); // Delay para garantir que o modal fechou primeiro
+      }, 300);
     }
   };
 

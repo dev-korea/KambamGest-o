@@ -24,13 +24,20 @@ export function KanbanTask({ task, onUpdateNotes, onUpdateTask, onDeleteTask }: 
   const [linkedProjects, setLinkedProjects] = useState<string[]>(task.linkedProjects || []);
   const [collaborators, setCollaborators] = useState<string[]>(task.collaborators || []);
   const [newCollaborator, setNewCollaborator] = useState("");
+  const [users, setUsers] = useState<{name: string, email: string}[]>([]);
   
-  // Carregar projetos do localStorage para vincular
+  // Load projects from localStorage for linking
   useEffect(() => {
     const storedProjects = localStorage.getItem('projects');
     if (storedProjects) {
       const parsedProjects = JSON.parse(storedProjects);
       setProjects(parsedProjects.map((p: any) => ({ id: p.id, title: p.title })));
+    }
+    
+    // Load users for validation
+    const storedUsers = localStorage.getItem('users');
+    if (storedUsers) {
+      setUsers(JSON.parse(storedUsers));
     }
   }, []);
   
@@ -79,22 +86,61 @@ export function KanbanTask({ task, onUpdateNotes, onUpdateTask, onDeleteTask }: 
   const addCollaborator = () => {
     if (!newCollaborator.trim()) return;
     
-    if (collaborators.includes(newCollaborator)) {
-      toast.error("Este colaborador já foi adicionado");
-      return;
-    }
+    // Validate email format
+    const isEmail = newCollaborator.includes('@');
     
-    const updatedCollaborators = [...collaborators, newCollaborator];
-    setCollaborators(updatedCollaborators);
-    
-    if (onUpdateTask) {
-      onUpdateTask(task.id, { collaborators: updatedCollaborators });
-      toast("Colaborador adicionado", {
-        description: `${newCollaborator} foi adicionado à tarefa`
-      });
+    if (isEmail) {
+      // Check if email exists in registered users
+      const userWithEmail = users.find(user => 
+        user.email.toLowerCase() === newCollaborator.toLowerCase()
+      );
+      
+      if (!userWithEmail) {
+        toast.error("Email não encontrado nos usuários registrados");
+        return;
+      }
+      
+      // Add user by name if email is found
+      if (collaborators.includes(userWithEmail.name)) {
+        toast.error("Este colaborador já foi adicionado");
+        return;
+      }
+      
+      const updatedCollaborators = [...collaborators, userWithEmail.name];
+      setCollaborators(updatedCollaborators);
+      
+      if (onUpdateTask) {
+        onUpdateTask(task.id, { collaborators: updatedCollaborators });
+        toast.success(`${userWithEmail.name} foi adicionado à tarefa`);
+      }
+    } else {
+      // Handle adding by name
+      if (collaborators.includes(newCollaborator)) {
+        toast.error("Este colaborador já foi adicionado");
+        return;
+      }
+      
+      // Validate if name exists
+      const userWithName = users.find(user => 
+        user.name.toLowerCase() === newCollaborator.toLowerCase()
+      );
+      
+      if (!userWithName) {
+        toast.error("Nome não encontrado nos usuários registrados");
+        return;
+      }
+      
+      const updatedCollaborators = [...collaborators, userWithName.name];
+      setCollaborators(updatedCollaborators);
+      
+      if (onUpdateTask) {
+        onUpdateTask(task.id, { collaborators: updatedCollaborators });
+        toast.success(`${userWithName.name} foi adicionado à tarefa`);
+      }
     }
     
     setNewCollaborator("");
+    setShowOptions(false); // Close popover after adding
   };
 
   const removeCollaborator = (name: string) => {
@@ -109,12 +155,18 @@ export function KanbanTask({ task, onUpdateNotes, onUpdateTask, onDeleteTask }: 
     }
   };
 
-  const handleDeleteTask = () => {
+  const handleDeleteTask = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event bubbling
+    
     if (onDeleteTask) {
-      onDeleteTask(task.id);
-      toast("Tarefa excluída", {
-        description: "A tarefa foi excluída com sucesso"
-      });
+      // Close popover first to prevent UI freeze
+      setShowOptions(false);
+      
+      // Small delay to ensure popover closes properly
+      setTimeout(() => {
+        onDeleteTask(task.id);
+        toast.success("Tarefa excluída com sucesso");
+      }, 100);
     }
   };
 
@@ -202,7 +254,7 @@ export function KanbanTask({ task, onUpdateNotes, onUpdateTask, onDeleteTask }: 
                         <Input 
                           value={newCollaborator}
                           onChange={(e) => setNewCollaborator(e.target.value)}
-                          placeholder="Nome do colaborador"
+                          placeholder="Nome ou email"
                           className="h-8 text-sm"
                           onKeyDown={(e) => e.key === "Enter" && addCollaborator()}
                         />
@@ -242,7 +294,6 @@ export function KanbanTask({ task, onUpdateNotes, onUpdateTask, onDeleteTask }: 
                   className="justify-start text-destructive"
                   onClick={handleDeleteTask}
                 >
-                  <Trash2 className="mr-2 h-4 w-4" />
                   <span>Excluir tarefa</span>
                 </Button>
               </div>
