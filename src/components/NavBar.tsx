@@ -113,7 +113,7 @@ export function NavBar() {
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 <span>Dashboard</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate('/settings')}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
@@ -182,7 +182,13 @@ export function NavBar() {
             
             <div className="h-px bg-border my-1"></div>
             
-            <button className="nav-link flex items-center gap-2 py-3">
+            <button 
+              className="nav-link flex items-center gap-2 py-3"
+              onClick={() => {
+                navigate('/settings');
+                setIsMenuOpen(false);
+              }}
+            >
               <Settings className="h-5 w-5" />
               <span>Settings</span>
             </button>

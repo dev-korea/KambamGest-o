@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
@@ -81,6 +82,17 @@ export function KanbanColumn({
     }
   };
 
+  // Handler para o onOpenChange do TaskDetailModal
+  const handleDetailModalOpenChange = (open: boolean) => {
+    setIsDetailModalOpen(open);
+    // Se fechando o modal, limpar a tarefa selecionada após pequeno delay
+    if (!open) {
+      setTimeout(() => {
+        setSelectedTask(null);
+      }, 300); // Delay para garantir que o modal fechou primeiro
+    }
+  };
+
   return (
     <>
       <div 
@@ -122,7 +134,7 @@ export function KanbanColumn({
       {selectedTask && (
         <TaskDetailModal
           open={isDetailModalOpen}
-          onOpenChange={setIsDetailModalOpen}
+          onOpenChange={handleDetailModalOpenChange}
           task={selectedTask}
           onUpdateTask={onUpdateTask}
           onDeleteTask={onDeleteTask}

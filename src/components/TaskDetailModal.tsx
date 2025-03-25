@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,7 +13,8 @@ import {
   Pencil, 
   Users, 
   Link, 
-  FileText
+  FileText,
+  Trash2
 } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
@@ -46,13 +46,11 @@ export function TaskDetailModal({
   const [collaboratorEmail, setCollaboratorEmail] = useState("");
   const [registeredUsers, setRegisteredUsers] = useState<{name: string, email: string}[]>([]);
   
-  // Load registered users from localStorage
   useEffect(() => {
     const storedUsers = localStorage.getItem('registeredUsers');
     if (storedUsers) {
       setRegisteredUsers(JSON.parse(storedUsers));
     } else {
-      // Create a default entry if none exists
       const defaultUsers = [
         { name: localStorage.getItem('username') || "Guest User", email: "user@example.com" }
       ];
@@ -61,7 +59,6 @@ export function TaskDetailModal({
     }
   }, []);
   
-  // Carregar projetos do localStorage
   useEffect(() => {
     const storedProjects = localStorage.getItem('projects');
     if (storedProjects) {
@@ -70,7 +67,6 @@ export function TaskDetailModal({
     }
   }, []);
 
-  // Atualizar estado local quando a tarefa externa mudar
   useEffect(() => {
     setCurrentTask(task);
     setNotes(task.notes || "");
@@ -96,12 +92,19 @@ export function TaskDetailModal({
   };
 
   const handleDeleteTask = () => {
-    setIsDeleteDialogOpen(false);
-    onOpenChange(false);
-    
-    if (onDeleteTask) {
-      onDeleteTask(task.id);
-      toast.success("Tarefa excluída com sucesso");
+    try {
+      setIsDeleteDialogOpen(false);
+      
+      if (onDeleteTask) {
+        onOpenChange(false);
+        setTimeout(() => {
+          onDeleteTask(task.id);
+          toast.success("Tarefa excluída com sucesso");
+        }, 100);
+      }
+    } catch (error) {
+      console.error("Erro ao excluir tarefa:", error);
+      toast.error("Erro ao excluir tarefa");
     }
   };
 
@@ -126,7 +129,6 @@ export function TaskDetailModal({
       return;
     }
     
-    // Check if email exists in registered users
     const foundUser = registeredUsers.find(user => 
       user.email.toLowerCase() === collaboratorEmail.toLowerCase()
     );
@@ -260,7 +262,6 @@ export function TaskDetailModal({
           
           <div className="grid grid-cols-3 gap-6 mt-4">
             <div className="col-span-2 space-y-6">
-              {/* Descrição */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="h-4 w-4" />
@@ -298,7 +299,6 @@ export function TaskDetailModal({
                 )}
               </div>
               
-              {/* Checklist */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -361,7 +361,6 @@ export function TaskDetailModal({
                 </div>
               </div>
               
-              {/* Anotações */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-2">
                   <Pencil className="h-4 w-4" />
@@ -382,7 +381,6 @@ export function TaskDetailModal({
             </div>
             
             <div className="space-y-6">
-              {/* Data de entrega */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="h-4 w-4" />
@@ -396,7 +394,6 @@ export function TaskDetailModal({
                 />
               </div>
               
-              {/* Responsável */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="h-4 w-4" />
@@ -410,149 +407,142 @@ export function TaskDetailModal({
                 />
               </div>
               
-              {/* Colaboradores */}
-              <div className="space-y-2">
-                <div 
-                  className="flex items-center justify-between mb-2 cursor-pointer"
-                  onClick={() => setActiveSection(activeSection === "collaborators" ? null : "collaborators")}
-                >
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    <h3 className="font-medium">Colaboradores</h3>
-                  </div>
-                  <div className="text-xs bg-muted rounded-full px-2 py-0.5">
-                    {currentTask.collaborators?.length || 0}
-                  </div>
+              <div 
+                className="flex items-center justify-between mb-2 cursor-pointer"
+                onClick={() => setActiveSection(activeSection === "collaborators" ? null : "collaborators")}
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <h3 className="font-medium">Colaboradores</h3>
                 </div>
-                
-                <Sheet open={activeSection === "collaborators"} onOpenChange={(open) => setActiveSection(open ? "collaborators" : null)}>
-                  <SheetContent>
-                    <SheetHeader>
-                      <SheetTitle>Gerenciar Colaboradores</SheetTitle>
-                    </SheetHeader>
+                <div className="text-xs bg-muted rounded-full px-2 py-0.5">
+                  {currentTask.collaborators?.length || 0}
+                </div>
+              </div>
+              
+              <Sheet open={activeSection === "collaborators"} onOpenChange={(open) => setActiveSection(open ? "collaborators" : null)}>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Gerenciar Colaboradores</SheetTitle>
+                  </SheetHeader>
+                  
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Email do colaborador</label>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          value={collaboratorEmail}
+                          onChange={(e) => setCollaboratorEmail(e.target.value)}
+                          placeholder="Email do colaborador"
+                          type="email"
+                          onKeyDown={(e) => e.key === "Enter" && addCollaborator()}
+                        />
+                        <Button onClick={addCollaborator}>Adicionar</Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        O colaborador deve estar registrado na plataforma com este email
+                      </p>
+                    </div>
                     
-                    <div className="space-y-4 py-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Email do colaborador</label>
-                        <div className="flex items-center gap-2">
-                          <Input 
-                            value={collaboratorEmail}
-                            onChange={(e) => setCollaboratorEmail(e.target.value)}
-                            placeholder="Email do colaborador"
-                            type="email"
-                            onKeyDown={(e) => e.key === "Enter" && addCollaborator()}
-                          />
-                          <Button onClick={addCollaborator}>Adicionar</Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          O colaborador deve estar registrado na plataforma com este email
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2 mt-4">
-                        <h4 className="text-sm font-medium">Usuários registrados disponíveis:</h4>
-                        <div className="max-h-20 overflow-y-auto space-y-1 p-2 bg-muted/30 rounded-md">
-                          {registeredUsers.map((user) => (
-                            <div key={user.email} className="text-xs text-muted-foreground flex justify-between">
-                              <span>{user.name}</span>
-                              <span>{user.email}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-2 mt-4">
-                        <h4 className="text-sm font-medium">Colaboradores atuais:</h4>
-                        <div className="max-h-32 overflow-y-auto space-y-1">
-                          {currentTask.collaborators && currentTask.collaborators.length > 0 ? (
-                            currentTask.collaborators.map(name => (
-                              <div 
-                                key={name} 
-                                className="flex items-center justify-between bg-secondary/50 p-1.5 rounded text-sm"
-                              >
-                                <span>{name}</span>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  className="h-6 w-6" 
-                                  onClick={() => removeCollaborator(name)}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15"><path fill="currentColor" fillRule="evenodd" d="M11.782 4.032a.575.575 0 1 0-.813-.814L7.5 6.687L4.032 3.218a.575.575 0 0 0-.814.814L6.687 7.5l-3.469 3.468a.575.575 0 0 0 .814.814L7.5 8.313l3.469 3.469a.575.575 0 0 0 .813-.814L8.313 7.5l3.469-3.468Z" clipRule="evenodd"/></svg>
-                                </Button>
-                              </div>
-                            ))
-                          ) : (
-                            <p className="text-sm text-muted-foreground p-1">
-                              Nenhum colaborador adicionado
-                            </p>
-                          )}
-                        </div>
+                    <div className="space-y-2 mt-4">
+                      <h4 className="text-sm font-medium">Usuários registrados disponíveis:</h4>
+                      <div className="max-h-20 overflow-y-auto space-y-1 p-2 bg-muted/30 rounded-md">
+                        {registeredUsers.map((user) => (
+                          <div key={user.email} className="text-xs text-muted-foreground flex justify-between">
+                            <span>{user.name}</span>
+                            <span>{user.email}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                     
-                    <SheetFooter>
-                      <Button onClick={() => setActiveSection(null)}>Concluído</Button>
-                    </SheetFooter>
-                  </SheetContent>
-                </Sheet>
-              </div>
-              
-              {/* Projetos vinculados */}
-              <div className="space-y-2">
-                <div 
-                  className="flex items-center justify-between mb-2 cursor-pointer"
-                  onClick={() => setActiveSection(activeSection === "projects" ? null : "projects")}
-                >
-                  <div className="flex items-center gap-2">
-                    <Link className="h-4 w-4" />
-                    <h3 className="font-medium">Projetos vinculados</h3>
-                  </div>
-                  <div className="text-xs bg-muted rounded-full px-2 py-0.5">
-                    {currentTask.linkedProjects?.length || 0}
-                  </div>
-                </div>
-                
-                <Sheet open={activeSection === "projects"} onOpenChange={(open) => setActiveSection(open ? "projects" : null)}>
-                  <SheetContent>
-                    <SheetHeader>
-                      <SheetTitle>Vincular Projetos</SheetTitle>
-                    </SheetHeader>
-                    
-                    <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
-                      {projects.length > 0 ? (
-                        projects.map(project => {
-                          const isLinked = currentTask.linkedProjects?.includes(project.id);
-                          return (
+                    <div className="space-y-2 mt-4">
+                      <h4 className="text-sm font-medium">Colaboradores atuais:</h4>
+                      <div className="max-h-32 overflow-y-auto space-y-1">
+                        {currentTask.collaborators && currentTask.collaborators.length > 0 ? (
+                          currentTask.collaborators.map(name => (
                             <div 
-                              key={project.id} 
-                              className={`flex items-center justify-between p-3 rounded-md border ${isLinked ? 'border-primary bg-primary/5' : 'border-border'}`}
+                              key={name} 
+                              className="flex items-center justify-between bg-secondary/50 p-1.5 rounded text-sm"
                             >
-                              <span className="font-medium">{project.title}</span>
+                              <span>{name}</span>
                               <Button 
-                                variant={isLinked ? "default" : "outline"} 
-                                size="sm"
-                                onClick={() => toggleProjectLink(project.id)}
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-6 w-6" 
+                                onClick={() => removeCollaborator(name)}
                               >
-                                {isLinked ? "Desvincular" : "Vincular"}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15"><path fill="currentColor" fillRule="evenodd" d="M11.782 4.032a.575.575 0 1 0-.813-.814L7.5 6.687L4.032 3.218a.575.575 0 0 0-.814.814L6.687 7.5l-3.469 3.468a.575.575 0 0 0 .814.814L7.5 8.313l3.469 3.469a.575.575 0 0 0 .813-.814L8.313 7.5l3.469-3.468Z" clipRule="evenodd"/></svg>
                               </Button>
                             </div>
-                          );
-                        })
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          Nenhum projeto disponível
-                        </p>
-                      )}
+                          ))
+                        ) : (
+                          <p className="text-sm text-muted-foreground p-1">
+                            Nenhum colaborador adicionado
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    
-                    <SheetFooter>
-                      <Button onClick={() => setActiveSection(null)}>Concluído</Button>
-                    </SheetFooter>
-                  </SheetContent>
-                </Sheet>
+                  </div>
+                  
+                  <SheetFooter>
+                    <Button onClick={() => setActiveSection(null)}>Concluído</Button>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+              
+              <div 
+                className="flex items-center justify-between mb-2 cursor-pointer"
+                onClick={() => setActiveSection(activeSection === "projects" ? null : "projects")}
+              >
+                <div className="flex items-center gap-2">
+                  <Link className="h-4 w-4" />
+                  <h3 className="font-medium">Projetos vinculados</h3>
+                </div>
+                <div className="text-xs bg-muted rounded-full px-2 py-0.5">
+                  {currentTask.linkedProjects?.length || 0}
+                </div>
               </div>
               
-              {/* Tags */}
+              <Sheet open={activeSection === "projects"} onOpenChange={(open) => setActiveSection(open ? "projects" : null)}>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Vincular Projetos</SheetTitle>
+                  </SheetHeader>
+                  
+                  <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+                    {projects.length > 0 ? (
+                      projects.map(project => {
+                        const isLinked = currentTask.linkedProjects?.includes(project.id);
+                        return (
+                          <div 
+                            key={project.id} 
+                            className={`flex items-center justify-between p-3 rounded-md border ${isLinked ? 'border-primary bg-primary/5' : 'border-border'}`}
+                          >
+                            <span className="font-medium">{project.title}</span>
+                            <Button 
+                              variant={isLinked ? "default" : "outline"} 
+                              size="sm"
+                              onClick={() => toggleProjectLink(project.id)}
+                            >
+                              {isLinked ? "Desvincular" : "Vincular"}
+                            </Button>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        Nenhum projeto disponível
+                      </p>
+                    )}
+                  </div>
+                  
+                  <SheetFooter>
+                    <Button onClick={() => setActiveSection(null)}>Concluído</Button>
+                  </SheetFooter>
+                </SheetContent>
+              </Sheet>
+              
               {currentTask.tags && currentTask.tags.length > 0 && (
                 <div className="space-y-2">
                   <h3 className="text-sm font-medium mb-2">Tags</h3>
@@ -570,18 +560,13 @@ export function TaskDetailModal({
                 </div>
               )}
               
-              {/* Delete button moved to bottom */}
               <div className="pt-6 border-t border-border mt-6">
                 <Button 
                   variant="destructive" 
                   className="w-full"
                   onClick={() => setIsDeleteDialogOpen(true)}
                 >
-                  <img 
-                    src="/lovable-uploads/a77a518b-858d-4fda-adbf-979be87b9644.png" 
-                    alt="Excluir"
-                    className="w-6 h-6 mr-2"
-                  />
+                  <Trash2 className="h-5 w-5 mr-2" />
                   Excluir tarefa
                 </Button>
               </div>
