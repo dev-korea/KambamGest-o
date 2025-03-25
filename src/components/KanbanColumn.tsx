@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { KanbanTask } from "./KanbanTask";
 
@@ -10,6 +9,7 @@ export interface Task {
   title: string;
   description?: string;
   priority: "low" | "medium" | "high";
+  status: "pending" | "in_progress" | "in_review" | "completed";
   dueDate?: string;
   tags?: string[];
   notes?: string;

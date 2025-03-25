@@ -2,6 +2,11 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 // Status types for the Kanban columns
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
@@ -23,6 +28,18 @@ interface KanbanBoardProps {
 export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardProps) {
   // State for the tasks in the board
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [newTask, setNewTask] = useState({
+    title: "",
+    description: "",
+    priority: "medium" as "low" | "medium" | "high",
+    status: "pending" as StatusType,
+    dueDate: "",
+    tags: [] as string[],
+    assignee: {
+      name: ""
+    }
+  });
   
   // Initial load of tasks
   useEffect(() => {
@@ -137,6 +154,41 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     
     saveTasks(updatedTasks);
   };
+
+  // Add new task
+  const addNewTask = () => {
+    if (!newTask.title.trim()) {
+      toast.error("Título da tarefa é obrigatório");
+      return;
+    }
+
+    const newTaskItem: Task = {
+      id: `task-${Date.now()}`,
+      title: newTask.title,
+      description: newTask.description,
+      status: newTask.status,
+      priority: newTask.priority,
+      dueDate: newTask.dueDate,
+      tags: [],
+      assignee: newTask.assignee.name ? { name: newTask.assignee.name } : undefined,
+    };
+    
+    const updatedTasks = [...tasks, newTaskItem];
+    saveTasks(updatedTasks);
+    
+    setNewTaskOpen(false);
+    setNewTask({
+      title: "",
+      description: "",
+      priority: "medium",
+      status: "pending",
+      dueDate: "",
+      tags: [],
+      assignee: { name: "" }
+    });
+
+    toast.success("Tarefa adicionada com sucesso");
+  };
   
   // Group tasks by status
   const tasksByStatus = columns.reduce<Record<string, Task[]>>((acc, column) => {
@@ -145,18 +197,132 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   }, {});
   
   return (
-    <div className="flex gap-6 overflow-x-auto pb-8">
-      {columns.map(column => (
-        <KanbanColumn
-          key={column.id}
-          title={column.title}
-          columnId={column.id}
-          tasks={tasksByStatus[column.id] || []}
-          onDrop={handleDrop}
-          onTaskClick={handleTaskClick}
-          onUpdateNotes={handleUpdateNotes}
-        />
-      ))}
+    <div className="flex flex-col gap-6">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-medium">Quadro de Tarefas</h2>
+        <Button onClick={() => setNewTaskOpen(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          <span>Adicionar Tarefa</span>
+        </Button>
+      </div>
+
+      <div className="flex gap-6 overflow-x-auto pb-8">
+        {columns.map(column => (
+          <KanbanColumn
+            key={column.id}
+            title={column.title}
+            columnId={column.id}
+            tasks={tasksByStatus[column.id] || []}
+            onDrop={handleDrop}
+            onTaskClick={handleTaskClick}
+            onUpdateNotes={handleUpdateNotes}
+          />
+        ))}
+      </div>
+
+      {/* Nova Tarefa Dialog */}
+      <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Nova Tarefa</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div>
+              <label htmlFor="title" className="text-sm font-medium block mb-1">
+                Título
+              </label>
+              <Input 
+                id="title"
+                value={newTask.title}
+                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                placeholder="Título da tarefa"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="description" className="text-sm font-medium block mb-1">
+                Descrição
+              </label>
+              <Textarea 
+                id="description"
+                value={newTask.description}
+                onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                placeholder="Descrição da tarefa"
+                rows={3}
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="status" className="text-sm font-medium block mb-1">
+                  Status
+                </label>
+                <select
+                  id="status"
+                  value={newTask.status}
+                  onChange={(e) => setNewTask({...newTask, status: e.target.value as StatusType})}
+                  className="w-full border border-input px-3 py-2 rounded-md bg-background"
+                >
+                  <option value="pending">Pendente</option>
+                  <option value="in_progress">Em Progresso</option>
+                  <option value="in_review">Em Revisão</option>
+                  <option value="completed">Concluído</option>
+                </select>
+              </div>
+              
+              <div>
+                <label htmlFor="priority" className="text-sm font-medium block mb-1">
+                  Prioridade
+                </label>
+                <select
+                  id="priority"
+                  value={newTask.priority}
+                  onChange={(e) => setNewTask({...newTask, priority: e.target.value as "low" | "medium" | "high"})}
+                  className="w-full border border-input px-3 py-2 rounded-md bg-background"
+                >
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
+                </select>
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="assignee" className="text-sm font-medium block mb-1">
+                Responsável
+              </label>
+              <Input 
+                id="assignee"
+                value={newTask.assignee.name}
+                onChange={(e) => setNewTask({...newTask, assignee: { name: e.target.value }})}
+                placeholder="Nome do responsável"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="dueDate" className="text-sm font-medium block mb-1">
+                Data de Entrega
+              </label>
+              <Input 
+                id="dueDate"
+                type="date"
+                value={newTask.dueDate}
+                onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewTaskOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={addNewTask}>
+              Adicionar Tarefa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

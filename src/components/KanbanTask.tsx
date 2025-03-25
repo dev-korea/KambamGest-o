@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { Task } from "./KanbanColumn";
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 
 interface KanbanTaskProps {
@@ -35,7 +34,7 @@ export function KanbanTask({ task, onUpdateNotes }: KanbanTaskProps) {
 
   return (
     <div 
-      className="kanban-task animate-scale-in bg-background/90 backdrop-blur-sm dark:bg-background/50 dark:border dark:border-border"
+      className="kanban-task animate-scale-in bg-background/90 backdrop-blur-sm dark:bg-background/50 dark:border dark:border-border p-4 rounded-lg shadow-sm"
       draggable
       onDragStart={handleDragStart}
     >
