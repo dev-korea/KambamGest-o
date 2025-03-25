@@ -21,9 +21,6 @@ export interface Task {
     title: string;
     completed: boolean;
   }[];
-  notes?: string;
-  status: "todo" | "in-progress" | "review" | "completed";
-  projectId?: string;
 }
 
 interface KanbanColumnProps {
@@ -32,7 +29,6 @@ interface KanbanColumnProps {
   columnId: string;
   onDrop: (taskId: string, columnId: string) => void;
   onTaskClick?: (task: Task) => void;
-  onNotesChange?: (taskId: string, notes: string) => void;
 }
 
 export function KanbanColumn({ 
@@ -40,8 +36,7 @@ export function KanbanColumn({
   tasks, 
   columnId, 
   onDrop,
-  onTaskClick,
-  onNotesChange
+  onTaskClick
 }: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
   
@@ -63,12 +58,6 @@ export function KanbanColumn({
 
   const handleDragStart = (e: React.DragEvent, taskId: string) => {
     e.dataTransfer.setData("taskId", taskId);
-  };
-  
-  const handleTaskNotesChange = (taskId: string, notes: string) => {
-    if (onNotesChange) {
-      onNotesChange(taskId, notes);
-    }
   };
 
   return (
@@ -97,10 +86,7 @@ export function KanbanColumn({
             onClick={() => onTaskClick && onTaskClick(task)}
             className="cursor-pointer"
           >
-            <KanbanTask 
-              task={task} 
-              onNotesChange={handleTaskNotesChange}
-            />
+            <KanbanTask task={task} />
           </div>
         ))}
       </div>

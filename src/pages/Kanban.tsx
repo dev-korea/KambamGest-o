@@ -6,7 +6,6 @@ import { KanbanBoard } from "@/components/KanbanBoard";
 import { ProjectOverview } from "@/components/ProjectOverview";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Progress } from "@/components/ui/progress";
 
 export default function Kanban() {
   const [searchParams] = useSearchParams();
@@ -18,7 +17,6 @@ export default function Kanban() {
     completed: 0,
     progress: 0
   });
-  const [showTutorial, setShowTutorial] = useState(false);
   
   useEffect(() => {
     const projectId = searchParams.get('projectId');
@@ -33,23 +31,17 @@ export default function Kanban() {
       if (foundProject) {
         setProject(foundProject);
         updateTaskStats(projectId);
-        
-        // Verifica se é a primeira vez que o usuário acessa o Kanban
-        const hasSeenTutorial = localStorage.getItem('hasSeenKanbanTutorial');
-        if (!hasSeenTutorial) {
-          setShowTutorial(true);
-        }
       } else {
-        toast.error("Projeto não encontrado");
-        navigate('/dashboard'); // Redireciona para o dashboard se o projeto não existir
+        toast.error("Project not found");
+        navigate('/dashboard'); // Redirect to dashboard if project doesn't exist
       }
     } else {
-      toast.error("Nenhum ID de projeto fornecido");
-      navigate('/dashboard'); // Redireciona para o dashboard
+      toast.error("No project ID provided");
+      navigate('/dashboard'); // Redirect to dashboard
     }
   }, [searchParams, navigate]);
 
-  // Função para atualizar as estatísticas de tarefas do projeto atual
+  // Function to update task statistics for the current project
   const updateTaskStats = (projectId: string) => {
     const projectTasks = localStorage.getItem(`tasks-${projectId}`);
     if (projectTasks) {
@@ -64,7 +56,7 @@ export default function Kanban() {
         progress: progress
       });
       
-      // Atualiza o progresso do projeto na lista de projetos
+      // Update project progress in projects list
       updateProjectProgress(projectId, completedTasks, totalTasks, progress);
     } else {
       setTaskStats({
@@ -73,12 +65,12 @@ export default function Kanban() {
         progress: 0
       });
       
-      // Redefinir o progresso na lista de projetos
+      // Reset progress in project list
       updateProjectProgress(projectId, 0, 0, 0);
     }
   };
   
-  // Atualizar o progresso do projeto no localStorage
+  // Update project progress in localStorage
   const updateProjectProgress = (
     projectId: string, 
     completed: number, 
@@ -104,16 +96,11 @@ export default function Kanban() {
     }
   };
   
-  // Atualiza as estatísticas de tarefas quando as tarefas são modificadas no componente KanbanBoard
+  // Update task stats when tasks are modified in KanbanBoard component
   const handleTasksChanged = () => {
     if (project) {
       updateTaskStats(project.id);
     }
-  };
-  
-  const skipTutorial = () => {
-    setShowTutorial(false);
-    localStorage.setItem('hasSeenKanbanTutorial', 'true');
   };
 
   if (!project) {
@@ -122,8 +109,8 @@ export default function Kanban() {
         <NavBar />
         <main className="container px-6 py-8 mx-auto pt-24">
           <div className="text-center">
-            <h1 className="text-2xl font-medium mb-4">Projeto Não Encontrado</h1>
-            <p className="text-muted-foreground">Por favor, selecione um projeto do painel.</p>
+            <h1 className="text-2xl font-medium mb-4">Project Not Found</h1>
+            <p className="text-muted-foreground">Please select a project from the dashboard.</p>
           </div>
         </main>
       </div>
@@ -134,23 +121,21 @@ export default function Kanban() {
     <div className="min-h-screen bg-background">
       <NavBar />
       
-      <main className="container px-6 pt-24 mx-auto md:ml-72">
+      <main className="container px-6 pt-24 mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-medium">{project.title}</h1>
           <p className="text-muted-foreground">{project.description}</p>
-          <div className="mt-4 flex flex-col gap-2">
-            <div className="flex items-center justify-between text-sm text-muted-foreground">
-              <span>Progresso: {taskStats.progress}%</span>
-              <span>{taskStats.completed}/{taskStats.total} tarefas concluídas</span>
-            </div>
-            <Progress value={taskStats.progress} className="h-2" />
+          <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Progress: {taskStats.progress}%</span>
+            <span>•</span>
+            <span>{taskStats.completed}/{taskStats.total} tasks completed</span>
           </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList>
-            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-            <TabsTrigger value="tasks">Quadro de Tarefas</TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tasks">Task Board</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="mt-6">
@@ -169,32 +154,6 @@ export default function Kanban() {
           </TabsContent>
         </Tabs>
       </main>
-      
-      {/* Tutorial Overlay */}
-      {showTutorial && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg shadow-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Bem-vindo ao Kanban!</h2>
-            <div className="space-y-4">
-              <p>Aqui você pode gerenciar as tarefas do seu projeto de forma visual e intuitiva.</p>
-              <ul className="list-disc pl-5 space-y-2">
-                <li>Arraste as tarefas entre as colunas para atualizar seu status</li>
-                <li>Clique no ícone de mensagem em uma tarefa para adicionar anotações</li>
-                <li>Acompanhe o progresso do projeto pela barra no topo</li>
-                <li>Use a barra lateral para navegar entre as seções do aplicativo</li>
-              </ul>
-              <div className="flex justify-end gap-4 mt-6">
-                <button
-                  onClick={skipTutorial}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-                >
-                  Pular Tutorial
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
