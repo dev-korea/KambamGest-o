@@ -6,6 +6,7 @@ import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Kanban from "@/pages/Kanban";
 import MyTasks from "@/pages/MyTasks";
+import TaskTemplates from "@/pages/TaskTemplates";
 import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import "./App.css";
@@ -20,6 +21,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/kanban" element={<Kanban />} />
           <Route path="/my-tasks" element={<MyTasks />} />
+          <Route path="/task-templates" element={<TaskTemplates />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/404" element={<NotFound />} />
           <Route path="*" element={<Navigate to="/404" />} />

@@ -15,7 +15,7 @@ import { PopoverContent, Popover, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 
-// Use the Task type that matches what's used in KanbanBoard
+// Use o mesmo tipo Task que é usado no KanbanBoard
 interface Task {
   id: string;
   title: string;
@@ -32,6 +32,7 @@ interface Task {
     title: string;
     completed: boolean;
   }[];
+  status?: "todo" | "in-progress" | "review" | "completed";
 }
 
 export default function TaskTemplates() {
@@ -66,7 +67,7 @@ export default function TaskTemplates() {
 
   const addNewTemplate = () => {
     if (!newTemplate.title.trim()) {
-      toast.error("Task title is required");
+      toast.error("O título da tarefa é obrigatório");
       return;
     }
 
@@ -91,11 +92,11 @@ export default function TaskTemplates() {
       subtasks: []
     });
 
-    toast.success("Task template added successfully");
+    toast.success("Template de tarefa adicionado com sucesso");
   };
 
   const addToProject = (template: Task) => {
-    // Navigate to kanban page with template data
+    // Navega para a página do kanban com dados do template
     localStorage.setItem('templateToAdd', JSON.stringify(template));
     window.location.href = '/kanban';
   };
@@ -104,7 +105,7 @@ export default function TaskTemplates() {
     const updatedTemplates = templates.filter(template => template.id !== id);
     setTemplates(updatedTemplates);
     localStorage.setItem('taskTemplates', JSON.stringify(updatedTemplates));
-    toast.success("Template deleted successfully");
+    toast.success("Template excluído com sucesso");
   };
 
   const addSubtask = () => {
@@ -124,7 +125,7 @@ export default function TaskTemplates() {
   const addTag = () => {
     if (!newTaskTag.trim()) return;
     if (newTemplate.tags?.includes(newTaskTag)) {
-      toast.error("Tag already exists");
+      toast.error("Esta tag já existe");
       return;
     }
     
@@ -166,7 +167,7 @@ export default function TaskTemplates() {
     setTemplates(updatedTemplates);
     localStorage.setItem('taskTemplates', JSON.stringify(updatedTemplates));
     closeTaskDetail();
-    toast.success("Template updated successfully");
+    toast.success("Template atualizado com sucesso");
   };
 
   return (
@@ -175,8 +176,8 @@ export default function TaskTemplates() {
       
       <main className="container px-6 pt-24 pb-8 mx-auto">
         <div className="mb-8 animate-fade-in">
-          <h1 className="text-2xl font-medium">Task Templates</h1>
-          <p className="text-muted-foreground">Create and manage reusable task templates for your projects</p>
+          <h1 className="text-2xl font-medium">Templates de Tarefas</h1>
+          <p className="text-muted-foreground">Crie e gerencie templates de tarefas reutilizáveis para seus projetos</p>
         </div>
         
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 animate-slide-up">
@@ -184,7 +185,7 @@ export default function TaskTemplates() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search templates..."
+              placeholder="Buscar templates..."
               className="pl-9 pr-4 py-2 rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring w-full md:w-auto"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -193,7 +194,7 @@ export default function TaskTemplates() {
           
           <Button onClick={() => setNewTemplateOpen(true)} className="flex items-center gap-2">
             <Plus className="h-4 w-4" />
-            <span>Create Template</span>
+            <span>Criar Template</span>
           </Button>
         </div>
         
@@ -204,13 +205,13 @@ export default function TaskTemplates() {
                 <ListTodo className="h-10 w-10 text-muted-foreground" />
               </div>
             </div>
-            <h2 className="text-2xl font-semibold">No templates yet</h2>
+            <h2 className="text-2xl font-semibold">Nenhum template ainda</h2>
             <p className="text-muted-foreground mt-2 mb-8 max-w-md mx-auto">
-              Create task templates to streamline your workflow. Templates can be added to any project.
+              Crie templates de tarefas para otimizar seu fluxo de trabalho. Os templates podem ser adicionados a qualquer projeto.
             </p>
             <Button onClick={() => setNewTemplateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Template
+              Criar Template
             </Button>
           </div>
         ) : (
@@ -232,7 +233,8 @@ export default function TaskTemplates() {
                       }
                       className="ml-2"
                     >
-                      {template.priority}
+                      {template.priority === "high" ? "Alta" : 
+                      template.priority === "medium" ? "Média" : "Baixa"}
                     </Badge>
                   </CardTitle>
                 </CardHeader>
@@ -259,22 +261,22 @@ export default function TaskTemplates() {
                   <div className="flex items-center justify-between text-xs text-muted-foreground mt-4">
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      <span>{template.dueDate ? template.dueDate : "No due date"}</span>
+                      <span>{template.dueDate ? format(new Date(template.dueDate), 'dd/MM/yyyy') : "Sem data"}</span>
                     </div>
                     
                     <div className="flex items-center gap-1">
                       <ListTodo className="h-3 w-3" />
-                      <span>{template.subtasks?.length || 0} subtasks</span>
+                      <span>{template.subtasks?.length || 0} subtarefas</span>
                     </div>
                   </div>
                 </CardContent>
                 
                 <CardFooter className="flex justify-between pt-0">
                   <Button variant="outline" size="sm" onClick={() => openTaskDetail(template)}>
-                    Edit
+                    Editar
                   </Button>
                   <Button size="sm" onClick={() => addToProject(template)}>
-                    Use Template
+                    Usar Template
                   </Button>
                 </CardFooter>
               </Card>
@@ -283,61 +285,61 @@ export default function TaskTemplates() {
         )}
       </main>
       
-      {/* New Template Dialog */}
+      {/* Modal de Novo Template */}
       <Dialog open={newTemplateOpen} onOpenChange={setNewTemplateOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Create Task Template</DialogTitle>
+            <DialogTitle>Criar Template de Tarefa</DialogTitle>
           </DialogHeader>
           
           <Tabs defaultValue="details">
             <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="subtasks">Subtasks</TabsTrigger>
+              <TabsTrigger value="details">Detalhes</TabsTrigger>
+              <TabsTrigger value="subtasks">Subtarefas</TabsTrigger>
               <TabsTrigger value="tags">Tags</TabsTrigger>
             </TabsList>
             
             <TabsContent value="details" className="space-y-4">
               <div>
                 <label htmlFor="title" className="text-sm font-medium block mb-1">
-                  Title
+                  Título
                 </label>
                 <Input 
                   id="title"
                   value={newTemplate.title}
                   onChange={(e) => setNewTemplate({...newTemplate, title: e.target.value})}
-                  placeholder="Task title"
+                  placeholder="Título da tarefa"
                 />
               </div>
               
               <div>
                 <label htmlFor="description" className="text-sm font-medium block mb-1">
-                  Description
+                  Descrição
                 </label>
                 <Textarea 
                   id="description"
                   value={newTemplate.description}
                   onChange={(e) => setNewTemplate({...newTemplate, description: e.target.value})}
-                  placeholder="Task description"
+                  placeholder="Descrição da tarefa"
                   rows={3}
                 />
               </div>
               
               <div>
                 <label htmlFor="assignee" className="text-sm font-medium block mb-1">
-                  Default Assignee
+                  Responsável Padrão
                 </label>
                 <Input 
                   id="assignee"
                   value={newTemplate.assignee?.name || ""}
                   onChange={(e) => setNewTemplate({...newTemplate, assignee: { name: e.target.value }})}
-                  placeholder="Assignee name"
+                  placeholder="Nome do responsável"
                 />
               </div>
               
               <div>
                 <label htmlFor="priority" className="text-sm font-medium block mb-1">
-                  Priority
+                  Prioridade
                 </label>
                 <select
                   id="priority"
@@ -345,24 +347,24 @@ export default function TaskTemplates() {
                   onChange={(e) => setNewTemplate({...newTemplate, priority: e.target.value as "low" | "medium" | "high"})}
                   className="w-full border border-input px-3 py-2 rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                 >
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
+                  <option value="low">Baixa</option>
+                  <option value="medium">Média</option>
+                  <option value="high">Alta</option>
                 </select>
               </div>
               
               <div>
                 <label className="text-sm font-medium block mb-1">
-                  Due Date
+                  Data de Vencimento
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-full justify-start text-left">
                       <Clock className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, 'PPP') : "Select a date"}
+                      {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Selecione uma data"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0 bg-background">
                     <Calendar
                       mode="single"
                       selected={selectedDate}
@@ -384,10 +386,10 @@ export default function TaskTemplates() {
                 <Input 
                   value={newSubtask}
                   onChange={(e) => setNewSubtask(e.target.value)}
-                  placeholder="Add a subtask"
+                  placeholder="Adicionar subtarefa"
                   onKeyDown={(e) => e.key === 'Enter' && addSubtask()}
                 />
-                <Button onClick={addSubtask} type="button" size="sm">Add</Button>
+                <Button onClick={addSubtask} type="button" size="sm">Adicionar</Button>
               </div>
               
               {newTemplate.subtasks && newTemplate.subtasks.length > 0 ? (
@@ -410,7 +412,7 @@ export default function TaskTemplates() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No subtasks added yet</p>
+                <p className="text-sm text-muted-foreground">Nenhuma subtarefa adicionada</p>
               )}
             </TabsContent>
 
@@ -419,10 +421,10 @@ export default function TaskTemplates() {
                 <Input 
                   value={newTaskTag}
                   onChange={(e) => setNewTaskTag(e.target.value)}
-                  placeholder="Add a tag"
+                  placeholder="Adicionar tag"
                   onKeyDown={(e) => e.key === 'Enter' && addTag()}
                 />
-                <Button onClick={addTag} type="button" size="sm">Add</Button>
+                <Button onClick={addTag} type="button" size="sm">Adicionar</Button>
               </div>
               
               {newTemplate.tags && newTemplate.tags.length > 0 ? (
@@ -440,66 +442,66 @@ export default function TaskTemplates() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No tags added yet</p>
+                <p className="text-sm text-muted-foreground">Nenhuma tag adicionada</p>
               )}
             </TabsContent>
           </Tabs>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewTemplateOpen(false)}>
-              Cancel
+              Cancelar
             </Button>
             <Button onClick={addNewTemplate} disabled={!newTemplate.title}>
-              Create Template
+              Criar Template
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Task Detail Dialog */}
+      {/* Modal de Detalhes da Tarefa */}
       {selectedTask && (
         <Dialog open={!!selectedTask} onOpenChange={closeTaskDetail}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Edit Template</DialogTitle>
+              <DialogTitle>Editar Template</DialogTitle>
             </DialogHeader>
             
             <Tabs defaultValue="details">
               <TabsList className="grid grid-cols-3 mb-4">
-                <TabsTrigger value="details">Details</TabsTrigger>
-                <TabsTrigger value="subtasks">Subtasks</TabsTrigger>
+                <TabsTrigger value="details">Detalhes</TabsTrigger>
+                <TabsTrigger value="subtasks">Subtarefas</TabsTrigger>
                 <TabsTrigger value="tags">Tags</TabsTrigger>
               </TabsList>
               
               <TabsContent value="details" className="space-y-4">
                 <div>
                   <label htmlFor="edit-title" className="text-sm font-medium block mb-1">
-                    Title
+                    Título
                   </label>
                   <Input 
                     id="edit-title"
                     value={selectedTask.title}
                     onChange={(e) => setSelectedTask({...selectedTask, title: e.target.value})}
-                    placeholder="Task title"
+                    placeholder="Título da tarefa"
                   />
                 </div>
                 
                 <div>
                   <label htmlFor="edit-description" className="text-sm font-medium block mb-1">
-                    Description
+                    Descrição
                   </label>
                   <Textarea 
                     id="edit-description"
                     value={selectedTask.description}
                     onChange={(e) => setSelectedTask({...selectedTask, description: e.target.value})}
-                    placeholder="Task description"
+                    placeholder="Descrição da tarefa"
                     rows={3}
                   />
                 </div>
                 
                 <div>
                   <label htmlFor="edit-assignee" className="text-sm font-medium block mb-1">
-                    Default Assignee
+                    Responsável Padrão
                   </label>
                   <Input 
                     id="edit-assignee"
@@ -508,13 +510,13 @@ export default function TaskTemplates() {
                       ...selectedTask,
                       assignee: { ...selectedTask.assignee, name: e.target.value }
                     })}
-                    placeholder="Assignee name"
+                    placeholder="Nome do responsável"
                   />
                 </div>
                 
                 <div>
                   <label htmlFor="edit-priority" className="text-sm font-medium block mb-1">
-                    Priority
+                    Prioridade
                   </label>
                   <select
                     id="edit-priority"
@@ -525,15 +527,15 @@ export default function TaskTemplates() {
                     })}
                     className="w-full border border-input px-3 py-2 rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                   >
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value="low">Baixa</option>
+                    <option value="medium">Média</option>
+                    <option value="high">Alta</option>
                   </select>
                 </div>
                 
                 <div>
                   <label className="text-sm font-medium block mb-1">
-                    Due Date
+                    Data de Vencimento
                   </label>
                   <Input
                     type="date"
@@ -551,7 +553,7 @@ export default function TaskTemplates() {
                   <Input 
                     value={newSubtask}
                     onChange={(e) => setNewSubtask(e.target.value)}
-                    placeholder="Add a subtask"
+                    placeholder="Adicionar subtarefa"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && newSubtask.trim()) {
                         const updatedTask = {
@@ -583,7 +585,7 @@ export default function TaskTemplates() {
                     type="button" 
                     size="sm"
                   >
-                    Add
+                    Adicionar
                   </Button>
                 </div>
                 
@@ -630,7 +632,7 @@ export default function TaskTemplates() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No subtasks added yet</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma subtarefa adicionada</p>
                 )}
               </TabsContent>
 
@@ -639,11 +641,11 @@ export default function TaskTemplates() {
                   <Input 
                     value={newTaskTag}
                     onChange={(e) => setNewTaskTag(e.target.value)}
-                    placeholder="Add a tag"
+                    placeholder="Adicionar tag"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && newTaskTag.trim()) {
                         if (selectedTask.tags && selectedTask.tags.includes(newTaskTag)) {
-                          toast.error("Tag already exists");
+                          toast.error("Esta tag já existe");
                           return;
                         }
                         const updatedTask = {
@@ -659,7 +661,7 @@ export default function TaskTemplates() {
                     onClick={() => {
                       if (newTaskTag.trim()) {
                         if (selectedTask.tags && selectedTask.tags.includes(newTaskTag)) {
-                          toast.error("Tag already exists");
+                          toast.error("Esta tag já existe");
                           return;
                         }
                         const updatedTask = {
@@ -673,7 +675,7 @@ export default function TaskTemplates() {
                     type="button" 
                     size="sm"
                   >
-                    Add
+                    Adicionar
                   </Button>
                 </div>
                 
@@ -698,7 +700,7 @@ export default function TaskTemplates() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No tags added yet</p>
+                  <p className="text-sm text-muted-foreground">Nenhuma tag adicionada</p>
                 )}
               </TabsContent>
             </Tabs>
@@ -708,14 +710,14 @@ export default function TaskTemplates() {
                 deleteTemplate(selectedTask.id);
                 closeTaskDetail();
               }}>
-                Delete
+                Excluir
               </Button>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={closeTaskDetail}>
-                  Cancel
+                  Cancelar
                 </Button>
                 <Button onClick={() => updateTemplate(selectedTask)}>
-                  Save Changes
+                  Salvar Alterações
                 </Button>
               </div>
             </DialogFooter>
