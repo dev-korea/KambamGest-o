@@ -58,36 +58,24 @@ export default function Kanban() {
     const handleTaskDateChanged = () => {
       if (project) {
         console.log("Task date changed event detected in Kanban");
+        setTimeout(() => updateTaskStats(project.id), 200);
         
-        // Use multiple timeouts to ensure updates happen
-        const delays = [200, 400, 600, 800, 1000];
-        
-        delays.forEach(delay => {
-          setTimeout(() => updateTaskStats(project.id), delay);
-          
-          // Ensure daily tasks view is refreshed
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-          }, delay + 50);
-        });
+        // Ensure daily tasks view is refreshed
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        }, 300);
       }
     };
     
     const handleDailyTasksRefresh = () => {
       if (project) {
         console.log("Daily tasks refresh requested in Kanban");
+        setTimeout(() => updateTaskStats(project.id), 300);
         
-        // Use multiple timeouts with increasing delays
-        const delays = [300, 600, 900, 1200, 1500];
-        
-        delays.forEach(delay => {
-          setTimeout(() => updateTaskStats(project.id), delay);
-          
-          // Send another refresh event for other components
-          setTimeout(() => {
-            window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-          }, delay + 50);
-        });
+        // Send another refresh event for other components
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        }, 400);
       }
     };
     
