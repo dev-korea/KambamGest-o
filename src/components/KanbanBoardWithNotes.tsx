@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
-import { Plus, Calendar as CalendarIcon, ListTodo } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ListTodo, Search, Tag, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
 
@@ -32,9 +33,10 @@ interface KanbanBoardProps {
 export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [templateSelectorOpen, setTemplateSelectorOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState("");
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
   
   const [newTask, setNewTask] = useState({
     title: "",
@@ -50,8 +52,11 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     collaborators: [] as string[]
   });
 
+  const [templates, setTemplates] = useState<Task[]>([]);
+
   useEffect(() => {
     loadTasks();
+    loadTemplates();
     
     const handleUndoEvent = (event: CustomEvent) => {
       if (event.detail?.projectId === projectId) {
@@ -85,6 +90,21 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       window.removeEventListener('dailyTasksRefresh', handleDateChange);
     };
   }, [projectId]);
+  
+  const loadTemplates = () => {
+    const storedTemplates = localStorage.getItem('taskTemplates');
+    if (storedTemplates) {
+      try {
+        const parsedTemplates = JSON.parse(storedTemplates);
+        setTemplates(parsedTemplates);
+      } catch (error) {
+        console.error("Error parsing templates:", error);
+        setTemplates([]);
+      }
+    } else {
+      setTemplates([]);
+    }
+  };
   
   const loadTasks = () => {
     const storedTasks = localStorage.getItem(`tasks-${projectId}`);
@@ -352,8 +372,48 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   };
 
   const handleUseExistingTemplate = () => {
-    navigate(`/task-templates?projectId=${projectId}`);
+    setTemplateSelectorOpen(true);
+    loadTemplates();
   };
+
+  const useTemplate = (template: Task) => {
+    const newTaskFromTemplate: Task = {
+      ...template,
+      id: `task-${Date.now()}`,
+      status: "pending" as StatusType,
+      completedDate: undefined
+    };
+    
+    const updatedTasks = [...tasks, newTaskFromTemplate];
+    saveTasks(updatedTasks);
+    
+    undoSystem.addAction({
+      type: 'ADD_TASK',
+      projectId,
+      payload: newTaskFromTemplate.id,
+      timestamp: Date.now()
+    });
+    
+    setTemplateSelectorOpen(false);
+    
+    if (newTaskFromTemplate.dueDate) {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('taskDateChanged'));
+      }, 100);
+      
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+      }, 200);
+    }
+
+    toast.success("Tarefa adicionada com sucesso a partir do template");
+  };
+
+  const filteredTemplates = templates.filter(template => 
+    template.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    template.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    template.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
   const tasksByStatus = columns.reduce<Record<string, Task[]>>((acc, column) => {
     acc[column.id] = tasks.filter(task => {
@@ -534,6 +594,104 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={templateSelectorOpen} onOpenChange={setTemplateSelectorOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden bg-background w-[95%] md:w-full">
+          <DialogHeader>
+            <DialogTitle>Selecionar Template de Tarefa</DialogTitle>
+            <DialogDescription>
+              Escolha um template para criar uma nova tarefa rapidamente
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar templates..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <ScrollArea className="h-[50vh] pr-4">
+            {templates.length === 0 ? (
+              <div className="text-center py-8">
+                <ListTodo className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+                <h3 className="text-lg font-medium mb-2">Nenhum template disponível</h3>
+                <p className="text-muted-foreground">
+                  Crie templates na aba de Templates para utilizá-los aqui
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredTemplates.map((template) => (
+                  <div 
+                    key={template.id}
+                    className="border border-border rounded-lg p-4 hover:border-primary cursor-pointer transition-all"
+                    onClick={() => useTemplate(template)}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-medium">{template.title}</h3>
+                      <Badge 
+                        variant={
+                          template.priority === "high" ? "destructive" : 
+                          template.priority === "medium" ? "default" : 
+                          "secondary"
+                        }
+                      >
+                        {template.priority === "high" ? "Alta" : 
+                        template.priority === "medium" ? "Média" : "Baixa"}
+                      </Badge>
+                    </div>
+                    
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {template.description}
+                    </p>
+                    
+                    {template.tags && template.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {template.tags.map((tag) => (
+                          <span 
+                            key={tag} 
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary rounded-full text-xs"
+                          >
+                            <Tag className="h-3 w-3" />
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-2">
+                      {template.dueDate && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>{format(new Date(template.dueDate), 'dd/MM/yyyy')}</span>
+                        </div>
+                      )}
+                      
+                      {template.subtasks && template.subtasks.length > 0 && (
+                        <div className="flex items-center gap-1">
+                          <ListTodo className="h-3 w-3" />
+                          <span>{template.subtasks.length} subtarefas</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+          
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setTemplateSelectorOpen(false)}>
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

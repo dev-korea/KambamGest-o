@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Plus, Search, Tag, Clock, Users, ListTodo } from "lucide-react";
@@ -93,12 +92,6 @@ export default function TaskTemplates() {
     });
 
     toast.success("Template de tarefa adicionado com sucesso");
-  };
-
-  const addToProject = (template: Task) => {
-    // Navega para a página do kanban com dados do template
-    localStorage.setItem('templateToAdd', JSON.stringify(template));
-    window.location.href = '/kanban';
   };
 
   const deleteTemplate = (id: string) => {
@@ -207,7 +200,7 @@ export default function TaskTemplates() {
             </div>
             <h2 className="text-2xl font-semibold">Nenhum template ainda</h2>
             <p className="text-muted-foreground mt-2 mb-8 max-w-md mx-auto">
-              Crie templates de tarefas para otimizar seu fluxo de trabalho. Os templates podem ser adicionados a qualquer projeto.
+              Crie templates de tarefas para otimizar seu fluxo de trabalho. Os templates podem ser adicionados diretamente do Kanban.
             </p>
             <Button onClick={() => setNewTemplateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -274,9 +267,6 @@ export default function TaskTemplates() {
                 <CardFooter className="flex justify-between pt-0">
                   <Button variant="outline" size="sm" onClick={() => openTaskDetail(template)}>
                     Editar
-                  </Button>
-                  <Button size="sm" onClick={() => addToProject(template)}>
-                    Usar Template
                   </Button>
                 </CardFooter>
               </Card>
