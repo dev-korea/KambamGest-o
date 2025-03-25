@@ -4,11 +4,11 @@ import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { undoSystem } from "@/utils/undoSystem";
-import { mapStatusToBoardFormat, normalizeStatus } from "@/utils/taskStatusMapper";
+import { mapStatusToBoardFormat, normalizeStatus, formatDateForDisplay } from "@/utils/taskStatusMapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -64,10 +64,17 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       }
     };
     
+    // Listen for general task updates
+    const handleTaskUpdate = () => {
+      loadTasks();
+    };
+    
     window.addEventListener('kanban-data-update', handleUndoEvent as EventListener);
+    window.addEventListener('taskUpdated', handleTaskUpdate);
     
     return () => {
       window.removeEventListener('kanban-data-update', handleUndoEvent as EventListener);
+      window.removeEventListener('taskUpdated', handleTaskUpdate);
     };
   }, [projectId]);
   
@@ -75,7 +82,18 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   const loadTasks = () => {
     const storedTasks = localStorage.getItem(`tasks-${projectId}`);
     if (storedTasks) {
-      setTasks(JSON.parse(storedTasks));
+      try {
+        const parsedTasks = JSON.parse(storedTasks);
+        // Ensure all tasks have normalized status
+        const normalizedTasks = parsedTasks.map((task: Task) => ({
+          ...task,
+          status: normalizeStatus(task.status)
+        }));
+        setTasks(normalizedTasks);
+      } catch (error) {
+        console.error("Error parsing tasks:", error);
+        setTasks([]);
+      }
     } else {
       // Initialize with some example tasks if none exist
       const exampleTasks = [
@@ -85,7 +103,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Analisar concorrentes e identificar oportunidades para o produto",
           priority: "high" as const,
           status: "pending" as StatusType,
-          dueDate: "30/11/2023",
+          dueDate: format(new Date(), 'yyyy-MM-dd'), // Set to today
           tags: ["Pesquisa", "Marketing"]
         },
         {
@@ -94,7 +112,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Desenvolver wireframes de alta fidelidade para a página inicial",
           priority: "medium" as const,
           status: "in_progress" as StatusType,
-          dueDate: "05/12/2023",
+          dueDate: format(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 5 days from now
           tags: ["Design", "UI/UX"],
           assignee: {
             name: "Maria"
@@ -106,7 +124,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Criar estratégia de lançamento para o novo produto",
           priority: "medium" as const,
           status: "pending" as StatusType,
-          dueDate: "10/12/2023",
+          dueDate: format(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 10 days from now
           tags: ["Estratégia", "Marketing"]
         },
         {
@@ -115,11 +133,12 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Criar um protótipo funcional da solução",
           priority: "low" as const,
           status: "completed" as StatusType,
-          dueDate: "15/12/2023",
+          dueDate: format(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 2 days ago
           tags: ["Desenvolvimento"],
           assignee: {
             name: "João"
-          }
+          },
+          completedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // Completed yesterday
         }
       ];
       
@@ -137,6 +156,9 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     if (onTasksChanged) {
       onTasksChanged();
     }
+    
+    // Dispatch event to update daily view
+    window.dispatchEvent(new CustomEvent('taskUpdated'));
   };
   
   // Handle task drag and drop
@@ -268,7 +290,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       id: `task-${Date.now()}`,
       title: newTask.title,
       description: newTask.description,
-      status: newTask.status,
+      status: newTask.status as Task["status"],
       priority: newTask.priority,
       dueDate: newTask.dueDate,
       tags: newTask.tags || [],
@@ -309,7 +331,13 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   
   // Group tasks by status
   const tasksByStatus = columns.reduce<Record<string, Task[]>>((acc, column) => {
-    acc[column.id] = tasks.filter(task => task.status === column.id);
+    acc[column.id] = tasks.filter(task => {
+      const normalizedStatus = normalizeStatus(task.status);
+      return normalizedStatus === column.id || 
+             (column.id === "pending" && normalizedStatus === "todo") ||
+             (column.id === "in_progress" && normalizedStatus === "in-progress") ||
+             (column.id === "in_review" && normalizedStatus === "review");
+    });
     return acc;
   }, {});
   
@@ -344,6 +372,9 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
         <DialogContent className={`max-w-md max-h-[90vh] ${isMobile ? 'w-[95%] p-4' : ''} overflow-y-auto`}>
           <DialogHeader>
             <DialogTitle>Adicionar Nova Tarefa</DialogTitle>
+            <DialogDescription>
+              Preencha os campos abaixo para criar uma nova tarefa
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-2">
@@ -441,6 +472,8 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
                       setSelectedDate(date);
                       if (date) {
                         setNewTask({...newTask, dueDate: format(date, 'yyyy-MM-dd')});
+                      } else {
+                        setNewTask({...newTask, dueDate: ""});
                       }
                     }}
                     initialFocus

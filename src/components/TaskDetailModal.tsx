@@ -1,13 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, parse } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { Calendar as CalendarIcon, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Task } from "./KanbanColumn";
@@ -31,43 +31,56 @@ export function TaskDetailModal({
   onDeleteTask
 }: TaskDetailModalProps) {
   const [editedTask, setEditedTask] = useState<Task>({ ...task });
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    task.dueDate ? 
-      (task.dueDate.includes('/') ? 
-        parse(task.dueDate, 'dd/MM/yyyy', new Date()) : 
-        new Date(task.dueDate)
-      ) : 
-      undefined
-  );
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [newSubtask, setNewSubtask] = useState("");
   const [newTag, setNewTag] = useState("");
   const [activeTab, setActiveTab] = useState("details");
   const [users, setUsers] = useState<{name: string, email: string}[]>([]);
   const isMobile = useIsMobile();
 
-  // Sync with task when it changes
+  // Initialize date from task
   useEffect(() => {
     setEditedTask({ ...task });
-    setSelectedDate(
-      task.dueDate ? 
-        (task.dueDate.includes('/') ? 
-          parse(task.dueDate, 'dd/MM/yyyy', new Date()) : 
-          new Date(task.dueDate)
-        ) : 
-        undefined
-    );
+    
+    // Parse the date string to Date object
+    let dateObj: Date | undefined = undefined;
+    
+    if (task.dueDate) {
+      // Try parsing different date formats
+      if (task.dueDate.includes('/')) {
+        // Format: DD/MM/YYYY
+        const [day, month, year] = task.dueDate.split('/').map(Number);
+        dateObj = new Date(year, month - 1, day);
+      } else {
+        // Format: YYYY-MM-DD or ISO string
+        dateObj = new Date(task.dueDate);
+      }
+      
+      // Validate the date is valid
+      if (!isValid(dateObj)) {
+        dateObj = undefined;
+      }
+    }
+    
+    setSelectedDate(dateObj);
   }, [task]);
 
   // Load registered users for assignee dropdown
   useEffect(() => {
     const storedUsers = localStorage.getItem('users');
     if (storedUsers) {
-      setUsers(JSON.parse(storedUsers));
+      try {
+        setUsers(JSON.parse(storedUsers));
+      } catch (error) {
+        console.error("Error parsing users:", error);
+        setUsers([]);
+      }
     }
   }, []);
 
   const handleSave = () => {
     if (onUpdateTask) {
+      // Make sure task has a valid status
       onUpdateTask(task.id, editedTask);
       
       // Dispatch a custom event to inform other components about the task update
@@ -175,6 +188,9 @@ export function TaskDetailModal({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{task.title}</DialogTitle>
+          <DialogDescription>
+            Gerencie os detalhes da tarefa
+          </DialogDescription>
         </DialogHeader>
         
         <Tabs defaultValue="details" onValueChange={setActiveTab} value={activeTab}>
@@ -272,6 +288,7 @@ export function TaskDetailModal({
                     selected={selectedDate}
                     onSelect={handleDateSelect}
                     initialFocus
+                    className="p-3"
                   />
                 </PopoverContent>
               </Popover>

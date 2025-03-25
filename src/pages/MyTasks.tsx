@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,7 @@ import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { Task } from "@/components/KanbanColumn";
 import { undoSystem } from "@/utils/undoSystem";
-import { mapStatusToBoardFormat, mapStatusToColumnFormat } from "@/utils/taskStatusMapper";
+import { mapStatusToBoardFormat, mapStatusToColumnFormat, normalizeStatus } from "@/utils/taskStatusMapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Project {
@@ -84,7 +83,9 @@ export default function MyTasks() {
             })
             .map(task => ({
               ...task,
-              projectId: project.id
+              projectId: project.id,
+              // Ensure status is normalized to one of the allowed types
+              status: normalizeStatus(task.status)
             }));
           
           assignedTasks.push(...userTasks);
@@ -146,9 +147,9 @@ export default function MyTasks() {
       
       localStorage.setItem(`tasks-${task.projectId}`, JSON.stringify(updatedTasks));
       
-      // Update in myTasks state - create a new array to ensure type safety
+      // Update in myTasks state with proper typing
       const updatedMyTasks = myTasks.map(t => 
-        t.id === task.id ? { ...t, status: "completed" } : t
+        t.id === task.id ? { ...t, status: "completed" as Task["status"] } : t
       );
       
       setMyTasks(updatedMyTasks);
