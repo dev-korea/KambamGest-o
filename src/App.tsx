@@ -13,6 +13,7 @@ import TaskTemplates from "./pages/TaskTemplates";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import Tutorial from "./components/Tutorial";
+import { SidebarProvider } from "./components/ui/sidebar";
 
 const queryClient = new QueryClient();
 
@@ -62,40 +63,42 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Navigate to="/auth" replace />} />
-              <Route path="/auth" element={<Auth />} />
-              
-              <Route path="/dashboard" element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/kanban" element={
-                <ProtectedRoute>
-                  <Kanban />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/task-templates" element={
-                <ProtectedRoute>
-                  <TaskTemplates />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="/my-tasks" element={
-                <ProtectedRoute>
-                  <MyTasks />
-                </ProtectedRoute>
-              } />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <SidebarProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Navigate to="/auth" replace />} />
+                <Route path="/auth" element={<Auth />} />
+                
+                <Route path="/dashboard" element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/kanban" element={
+                  <ProtectedRoute>
+                    <Kanban />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/task-templates" element={
+                  <ProtectedRoute>
+                    <TaskTemplates />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/my-tasks" element={
+                  <ProtectedRoute>
+                    <MyTasks />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </SidebarProvider>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -108,9 +108,9 @@ export default function Dashboard() {
       </main>
       
       <CreateProjectModal 
-        isOpen={isCreateModalOpen} 
-        onClose={() => setIsCreateModalOpen(false)}
-        onCreate={handleCreateProject}
+        open={isCreateModalOpen} 
+        onOpenChange={setIsCreateModalOpen}
+        onProjectCreate={handleCreateProject}
       />
     </div>
   );
@@ -137,7 +137,13 @@ function ProjectsGrid({ projects, onDelete, onClick }: ProjectsGridProps) {
       {projects.map((project: any) => (
         <ProjectCard
           key={project.id}
-          project={project}
+          id={project.id}
+          title={project.title}
+          description={project.description}
+          progress={project.progress}
+          dueDate={project.dueDate}
+          tasksCompleted={project.tasksCompleted || 0}
+          totalTasks={project.totalTasks || 0}
           onDelete={() => onDelete(project.id)}
           onClick={() => onClick(project.id)}
         />
