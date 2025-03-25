@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
@@ -7,7 +8,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogD
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { undoSystem } from "@/utils/undoSystem";
-import { mapStatusToBoardFormat, normalizeStatus, formatDateForDisplay } from "@/utils/taskStatusMapper";
+import { mapStatusToBoardFormat, normalizeStatus, formatDateForDisplay, normalizeDate } from "@/utils/taskStatusMapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -58,12 +59,16 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     };
     
     const handleTaskUpdate = () => {
+      console.log("Task update detected, reloading tasks");
       loadTasks();
     };
     
     const handleDateChange = () => {
       console.log("Detected task date change event, reloading tasks");
       loadTasks();
+      
+      // Force a reload for the daily overview by dispatching a custom event
+      window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
     };
     
     window.addEventListener('kanban-data-update', handleUndoEvent as EventListener);
@@ -308,6 +313,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     
     if (normalizedDueDate) {
       window.dispatchEvent(new CustomEvent('taskDateChanged'));
+      window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
     }
 
     toast.success("Tarefa adicionada com sucesso");

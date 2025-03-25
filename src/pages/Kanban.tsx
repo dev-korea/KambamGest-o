@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -33,6 +32,9 @@ export default function Kanban() {
       if (foundProject) {
         setProject(foundProject);
         updateTaskStats(projectId);
+        
+        // Dispatch an event to ensure daily tasks are refreshed
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
       } else {
         toast.error("Projeto não encontrado");
         navigate('/dashboard'); // Redirect to dashboard if project doesn't exist
@@ -102,6 +104,9 @@ export default function Kanban() {
   const handleTasksChanged = () => {
     if (project) {
       updateTaskStats(project.id);
+      
+      // Dispatch an event to ensure daily tasks are refreshed
+      window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
     }
   };
 

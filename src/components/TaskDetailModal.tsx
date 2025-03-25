@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, parse, isValid } from "date-fns";
+import { format } from "date-fns";
 import { Calendar as CalendarIcon, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Task } from "./KanbanColumn";
@@ -80,6 +80,9 @@ export function TaskDetailModal({
       if (prevDate !== newDate) {
         console.log("Date changed from", prevDate, "to", newDate);
         window.dispatchEvent(new CustomEvent('taskDateChanged'));
+        
+        // Add an extra event to ensure the daily overview is refreshed
+        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
       }
       
       onOpenChange(false);

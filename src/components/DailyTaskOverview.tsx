@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,7 +8,8 @@ import {
   isTaskDueToday, 
   wasCompletedYesterday, 
   normalizeStatus, 
-  parseDateString 
+  parseDateString,
+  formatDateForDisplay 
 } from "@/utils/taskStatusMapper";
 
 interface Task {
@@ -41,6 +41,7 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
   const [todayTasks, setTodayTasks] = useState<TaskWithProject[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<TaskWithProject[]>([]);
   const [yesterdayCompletedTasks, setYesterdayCompletedTasks] = useState<TaskWithProject[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   useEffect(() => {
     // Initial load
@@ -49,16 +50,16 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
     // Add event listeners for task updates
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('taskUpdated', loadAllTasks);
-    
-    // Custom event for date changes specifically
     window.addEventListener('taskDateChanged', loadAllTasks);
+    window.addEventListener('dailyTasksRefresh', loadAllTasks);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('taskUpdated', loadAllTasks);
       window.removeEventListener('taskDateChanged', loadAllTasks);
+      window.removeEventListener('dailyTasksRefresh', loadAllTasks);
     };
-  }, []);
+  }, [refreshTrigger]);
   
   const handleStorageChange = (e: StorageEvent) => {
     // Reload tasks when localStorage changes and key starts with 'tasks-'
@@ -79,32 +80,45 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
       
       // Loop through all projects and their tasks
       projects.forEach((project: any) => {
-        const projectTasks = JSON.parse(localStorage.getItem(`tasks-${project.id}`) || '[]');
+        const projectTasksKey = `tasks-${project.id}`;
+        const projectTasks = localStorage.getItem(projectTasksKey);
         
-        projectTasks.forEach((task: any) => {
-          const taskWithProject = {
-            ...task,
-            projectName: project.title,
-            status: normalizeStatus(task.status)
-          };
-          
-          allTasksWithProject.push(taskWithProject);
-          
-          // Check if task is due today
-          if (isTaskDueToday(task.dueDate)) {
-            today.push(taskWithProject);
+        if (projectTasks) {
+          try {
+            const tasks = JSON.parse(projectTasks);
+            
+            tasks.forEach((task: any) => {
+              // Skip tasks without proper data
+              if (!task || !task.id) return;
+              
+              const taskWithProject = {
+                ...task,
+                projectId: project.id,
+                projectName: project.title,
+                status: normalizeStatus(task.status)
+              };
+              
+              allTasksWithProject.push(taskWithProject);
+              
+              // Check if task is due today
+              if (isTaskDueToday(task.dueDate)) {
+                today.push(taskWithProject);
+              }
+              
+              // Check if task is overdue
+              if (isTaskOverdue(task.dueDate)) {
+                overdue.push(taskWithProject);
+              }
+              
+              // Check if task was completed yesterday
+              if (wasCompletedYesterday(task)) {
+                yesterdayCompleted.push(taskWithProject);
+              }
+            });
+          } catch (error) {
+            console.error(`Error parsing tasks for project ${project.id}:`, error);
           }
-          
-          // Check if task is overdue
-          if (isTaskOverdue(task.dueDate)) {
-            overdue.push(taskWithProject);
-          }
-          
-          // Check if task was completed yesterday
-          if (wasCompletedYesterday(task)) {
-            yesterdayCompleted.push(taskWithProject);
-          }
-        });
+        }
       });
       
       console.log("Daily tasks loaded:", {
@@ -119,6 +133,8 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
       
     } catch (error) {
       console.error("Error loading tasks:", error);
+      // Force a refresh after a timeout if there's an error
+      setTimeout(() => setRefreshTrigger(prev => prev + 1), 500);
     }
   };
   

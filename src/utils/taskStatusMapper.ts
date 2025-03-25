@@ -65,12 +65,24 @@ export function normalizeStatus(status: string): "todo" | "in-progress" | "revie
 export function parseDateString(dateString: string): Date | null {
   if (!dateString) return null;
   
+  // Handle edge cases
+  if (dateString === 'Invalid Date' || dateString === 'NaN') return null;
+  
   let result: Date | null = null;
   
   // Try direct Date parsing for ISO format (YYYY-MM-DD)
   if (dateString.includes('-')) {
-    result = new Date(dateString);
-    if (isValid(result)) return result;
+    try {
+      result = new Date(dateString);
+      if (isValid(result)) return result;
+      
+      // Try explicit parsing for YYYY-MM-DD
+      const [year, month, day] = dateString.split('-').map(Number);
+      result = new Date(year, month - 1, day);
+      if (isValid(result)) return result;
+    } catch (e) {
+      console.error("Error parsing ISO date:", e);
+    }
   }
   
   // Try DD/MM/YYYY format
@@ -140,10 +152,15 @@ export function wasCompletedYesterday(task: any): boolean {
   
   // Check if the task has a completedDate field
   if (task.completedDate) {
-    const completedDate = new Date(task.completedDate);
-    const yesterday = subDays(new Date(), 1);
-    
-    return isSameDay(completedDate, yesterday);
+    try {
+      const completedDate = new Date(task.completedDate);
+      const yesterday = subDays(new Date(), 1);
+      
+      return isSameDay(completedDate, yesterday);
+    } catch (e) {
+      console.error("Error checking completion date:", e);
+      return false;
+    }
   }
   
   return false;
