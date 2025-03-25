@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
@@ -159,9 +158,51 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       onTasksChanged();
     }
     
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('taskUpdated'));
-    }, 100);
+    const delays = [100, 200, 300, 400, 500];
+    
+    delays.forEach(delay => {
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('taskUpdated'));
+      }, delay);
+    });
+  };
+
+  const handleUpdateTask = (taskId: string, updatedFields: Partial<Task>) => {
+    const originalTask = tasks.find(task => task.id === taskId);
+    if (!originalTask) return;
+    
+    const isDateChange = 'dueDate' in updatedFields && originalTask.dueDate !== updatedFields.dueDate;
+    
+    undoSystem.addAction({
+      type: 'UPDATE_TASK',
+      projectId,
+      payload: { ...originalTask },
+      timestamp: Date.now()
+    });
+    
+    const updatedTasks = tasks.map(task => 
+      task.id === taskId 
+        ? { ...task, ...updatedFields } 
+        : task
+    );
+    
+    saveTasks(updatedTasks);
+    
+    if (isDateChange) {
+      console.log("Date change detected in handleUpdateTask:", originalTask.dueDate, "->", updatedFields.dueDate);
+      
+      const delays = [100, 200, 300, 400, 500, 600, 800, 1000];
+      
+      delays.forEach(delay => {
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('taskDateChanged'));
+        }, delay);
+        
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+        }, delay + 50);
+      });
+    }
   };
 
   const handleDrop = (taskId: string, targetColumnId: string) => {
@@ -223,45 +264,6 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     );
     
     saveTasks(updatedTasks);
-  };
-
-  const handleUpdateTask = (taskId: string, updatedFields: Partial<Task>) => {
-    const originalTask = tasks.find(task => task.id === taskId);
-    if (!originalTask) return;
-    
-    const isDateChange = 'dueDate' in updatedFields && originalTask.dueDate !== updatedFields.dueDate;
-    
-    undoSystem.addAction({
-      type: 'UPDATE_TASK',
-      projectId,
-      payload: { ...originalTask },
-      timestamp: Date.now()
-    });
-    
-    const updatedTasks = tasks.map(task => 
-      task.id === taskId 
-        ? { ...task, ...updatedFields } 
-        : task
-    );
-    
-    saveTasks(updatedTasks);
-    
-    if (isDateChange) {
-      console.log("Date change detected in handleUpdateTask:", originalTask.dueDate, "->", updatedFields.dueDate);
-      
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('taskDateChanged'));
-      }, 100);
-      
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-      }, 200);
-      
-      // One more for good measure, with a longer delay
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-      }, 500);
-    }
   };
 
   const handleDeleteTask = (taskId: string) => {

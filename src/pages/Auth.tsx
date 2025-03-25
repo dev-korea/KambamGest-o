@@ -14,16 +14,15 @@ export default function Auth() {
   const [username, setUsername] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
   const [registeredUsers, setRegisteredUsers] = useState<{name: string, email: string}[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Carregar usuários registrados
+    // Load registered users
     const storedUsers = localStorage.getItem('registeredUsers');
     if (storedUsers) {
       setRegisteredUsers(JSON.parse(storedUsers));
     }
     
-    // Verificar se já está logado
+    // Check if already logged in
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (isLoggedIn) {
       navigate('/dashboard');
@@ -32,71 +31,55 @@ export default function Auth() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     if (!loginEmail.trim()) {
       toast.error("Por favor, insira seu email");
-      setIsLoading(false);
       return;
     }
     
-    // Verificar se o email existe
+    // Check if email exists
     const foundUser = registeredUsers.find(user => 
       user.email.toLowerCase() === loginEmail.toLowerCase()
     );
     
     if (!foundUser) {
       toast.error("Email não encontrado. Por favor, registre-se primeiro.");
-      setIsLoading(false);
       return;
     }
     
-    // Configurar estado de logado
+    // Set logged in state
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('username', foundUser.name);
     
     toast.success(`Bem-vindo de volta, ${foundUser.name}!`);
-    
-    // Pequeno atraso para dar tempo de ver a mensagem de sucesso
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/dashboard');
-    }, 800);
+    navigate('/dashboard');
   };
   
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     if (!username.trim() || !email.trim()) {
       toast.error("Por favor, preencha todos os campos");
-      setIsLoading(false);
       return;
     }
     
-    // Verificar se o email já existe
+    // Check if email already exists
     if (registeredUsers.some(user => user.email.toLowerCase() === email.toLowerCase())) {
       toast.error("Este email já está registrado");
-      setIsLoading(false);
       return;
     }
     
-    // Adicionar novo usuário
+    // Add new user
     const newUsers = [...registeredUsers, { name: username, email }];
     localStorage.setItem('registeredUsers', JSON.stringify(newUsers));
     setRegisteredUsers(newUsers);
     
-    // Configurar estado de logado
+    // Set logged in state
     localStorage.setItem('isLoggedIn', 'true');
     localStorage.setItem('username', username);
     
     toast.success("Registro concluído com sucesso!");
-    
-    // Pequeno atraso para dar tempo de ver a mensagem de sucesso
-    setTimeout(() => {
-      setIsLoading(false);
-      navigate('/dashboard');
-    }, 800);
+    navigate('/dashboard');
   };
 
   return (
@@ -127,9 +110,7 @@ export default function Auth() {
                   />
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Entrando..." : "Entrar"}
-                </Button>
+                <Button type="submit" className="w-full">Entrar</Button>
               </form>
               
               <div className="mt-4 text-center text-sm">
@@ -171,9 +152,7 @@ export default function Auth() {
                   />
                 </div>
                 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Registrando..." : "Registrar"}
-                </Button>
+                <Button type="submit" className="w-full">Registrar</Button>
               </form>
               
               <div className="mt-4 text-center text-sm">
