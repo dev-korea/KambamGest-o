@@ -24,7 +24,7 @@ export function KanbanTask({ task }: KanbanTaskProps) {
         {task.description}
       </p>
       
-      {task.tags.length > 0 && (
+      {task.tags && task.tags.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {task.tags.map((tag) => (
             <span 
@@ -44,10 +44,10 @@ export function KanbanTask({ task }: KanbanTaskProps) {
           <span>{task.dueDate}</span>
         </div>
         
-        {task.assigned && (
+        {task.assignee && (
           <div className="flex items-center gap-1.5">
             <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium">
-              {task.assigned.name.charAt(0)}
+              {task.assignee.name.charAt(0)}
             </div>
           </div>
         )}

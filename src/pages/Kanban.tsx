@@ -3,12 +3,15 @@ import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { ProjectOverview } from "@/components/ProjectOverview";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Kanban() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [project, setProject] = useState<{id: string; title: string; description: string} | null>(null);
+  const [activeTab, setActiveTab] = useState("tasks");
   
   useEffect(() => {
     const projectId = searchParams.get('projectId');
@@ -50,13 +53,30 @@ export default function Kanban() {
     <div className="min-h-screen bg-background">
       <NavBar />
       
-      <main className="container px-6 pt-24 mx-auto overflow-x-auto">
+      <main className="container px-6 pt-24 mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-medium">{project.title}</h1>
           <p className="text-muted-foreground">{project.description}</p>
         </div>
         
-        <KanbanBoard projectId={project.id} />
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="tasks">Task Board</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview" className="mt-6">
+            <ProjectOverview 
+              projectId={project.id} 
+              projectTitle={project.title} 
+              projectDescription={project.description} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="tasks" className="mt-6">
+            <KanbanBoard projectId={project.id} />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

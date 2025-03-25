@@ -1,12 +1,18 @@
 
 import { useState } from "react";
 import { KanbanColumn } from "./KanbanColumn";
-import { KanbanTask } from "./KanbanTask";
-import { Plus } from "lucide-react";
+import { Plus, ListTodo, User, Calendar, ClipboardCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { PopoverContent, Popover, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
 
 export interface KanbanBoardProps {
   projectId: string;
@@ -19,115 +25,59 @@ export interface Task {
   status: "todo" | "in-progress" | "review" | "completed";
   priority: "low" | "medium" | "high";
   dueDate: string;
-  tags: string[]; // Added tags to match KanbanColumn's Task interface
-  assigned?: {
+  tags: string[];
+  assignee?: {
     name: string;
-    avatar: string;
+    avatar?: string;
   };
+  subtasks?: {
+    id: string;
+    title: string;
+    completed: boolean;
+  }[];
 }
 
-// Sample data - in a real app would fetch this based on projectId from database
-const initialTasks: Task[] = [
-  {
-    id: "task-1",
-    title: "Research competitors",
-    description: "Analyze top 5 competitors' websites and identify strengths and weaknesses",
-    status: "completed",
-    priority: "high",
-    dueDate: "2023-10-28",
-    tags: ["research"],
-  },
-  {
-    id: "task-2",
-    title: "Create wireframes",
-    description: "Design wireframes for homepage, product pages, and checkout flow",
-    status: "completed",
-    priority: "high",
-    dueDate: "2023-11-05",
-    tags: ["design"],
-  },
-  {
-    id: "task-3",
-    title: "Develop homepage",
-    description: "Code the homepage based on approved wireframes and design",
-    status: "in-progress",
-    priority: "medium",
-    dueDate: "2023-11-15",
-    tags: ["development"],
-  },
-  {
-    id: "task-4",
-    title: "Implement product filters",
-    description: "Add category, price, and attribute filters to product listing pages",
-    status: "todo",
-    priority: "medium",
-    dueDate: "2023-11-20",
-    tags: ["development"],
-  },
-  {
-    id: "task-5",
-    title: "Design shopping cart",
-    description: "Create a user-friendly shopping cart interface with thumbnail previews",
-    status: "review",
-    priority: "medium",
-    dueDate: "2023-11-10",
-    tags: ["design"],
-  },
-  {
-    id: "task-6",
-    title: "Optimize for mobile",
-    description: "Ensure responsive design functions correctly on various mobile devices",
-    status: "todo",
-    priority: "high",
-    dueDate: "2023-11-25",
-    tags: ["development"],
-  },
-  {
-    id: "task-7",
-    title: "Integrate payment gateway",
-    description: "Connect Stripe API for secure payment processing",
-    status: "todo",
-    priority: "high",
-    dueDate: "2023-11-30",
-    tags: ["integration"],
-  },
-  {
-    id: "task-8",
-    title: "User testing",
-    description: "Conduct usability testing with 5-7 participants and gather feedback",
-    status: "todo",
-    priority: "medium",
-    dueDate: "2023-12-05",
-    tags: ["testing"],
-  },
-  {
-    id: "task-9",
-    title: "SEO optimization",
-    description: "Implement meta tags, structured data, and optimize for core web vitals",
-    status: "todo",
-    priority: "low",
-    dueDate: "2023-12-10",
-    tags: ["seo"],
-  },
-];
-
 export function KanbanBoard({ projectId }: KanbanBoardProps) {
-  const [tasks, setTasks] = useState<Task[]>(initialTasks);
+  // Get tasks from localStorage or use empty array if none exist
+  const getTasksFromStorage = () => {
+    const storedTasks = localStorage.getItem(`tasks-${projectId}`);
+    return storedTasks ? JSON.parse(storedTasks) : [];
+  };
+
+  const [tasks, setTasks] = useState<Task[]>(getTasksFromStorage());
   const [newTaskOpen, setNewTaskOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [newSubtask, setNewSubtask] = useState("");
+  const [newTaskTag, setNewTaskTag] = useState("");
+  
   const [newTask, setNewTask] = useState({
     title: "",
     description: "",
-    priority: "medium" as "low" | "medium" | "high", // Fix type issue
-    dueDate: new Date().toISOString().split("T")[0],
+    priority: "medium" as "low" | "medium" | "high",
+    dueDate: format(new Date(), 'yyyy-MM-dd'),
+    tags: [] as string[],
+    assignee: {
+      name: ""
+    },
+    subtasks: [] as {id: string; title: string; completed: boolean}[]
   });
 
   const handleDrop = (taskId: string, newStatus: Task["status"]) => {
-    setTasks(tasks.map(task => 
+    const updatedTasks = tasks.map(task => 
       task.id === taskId ? { ...task, status: newStatus } : task
-    ));
+    );
+    setTasks(updatedTasks);
+    localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
+    toast.success(`Task updated to ${newStatus.replace('-', ' ')}`);
   };
   
   const addNewTask = () => {
+    if (!newTask.title.trim()) {
+      toast.error("Task title is required");
+      return;
+    }
+
     const newTaskItem: Task = {
       id: `task-${Date.now()}`,
       title: newTask.title,
@@ -135,17 +85,108 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
       status: "todo",
       priority: newTask.priority,
       dueDate: newTask.dueDate,
-      tags: [], // Add empty tags array for new tasks
+      tags: newTask.tags,
+      assignee: newTask.assignee.name ? newTask.assignee : undefined,
+      subtasks: newTask.subtasks.length > 0 ? newTask.subtasks : undefined,
     };
     
-    setTasks([...tasks, newTaskItem]);
+    const updatedTasks = [...tasks, newTaskItem];
+    setTasks(updatedTasks);
+    localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
+    
     setNewTaskOpen(false);
     setNewTask({
       title: "",
       description: "",
       priority: "medium",
-      dueDate: new Date().toISOString().split("T")[0],
+      dueDate: format(new Date(), 'yyyy-MM-dd'),
+      tags: [],
+      assignee: { name: "" },
+      subtasks: []
     });
+
+    toast.success("Task added successfully");
+  };
+
+  const openTaskDetail = (task: Task) => {
+    setSelectedTask(task);
+  };
+
+  const closeTaskDetail = () => {
+    setSelectedTask(null);
+  };
+
+  const updateTask = (updatedTask: Task) => {
+    const updatedTasks = tasks.map(task => 
+      task.id === updatedTask.id ? updatedTask : task
+    );
+    
+    setTasks(updatedTasks);
+    localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
+    closeTaskDetail();
+    toast.success("Task updated successfully");
+  };
+
+  const addSubtask = () => {
+    if (!newSubtask.trim()) return;
+    
+    setNewTask({
+      ...newTask,
+      subtasks: [
+        ...newTask.subtasks,
+        { id: `subtask-${Date.now()}`, title: newSubtask, completed: false }
+      ]
+    });
+    
+    setNewSubtask("");
+  };
+  
+  const addTag = () => {
+    if (!newTaskTag.trim()) return;
+    if (newTask.tags.includes(newTaskTag)) {
+      toast.error("Tag already exists");
+      return;
+    }
+    
+    setNewTask({
+      ...newTask,
+      tags: [...newTask.tags, newTaskTag]
+    });
+    
+    setNewTaskTag("");
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setNewTask({
+      ...newTask,
+      tags: newTask.tags.filter(tag => tag !== tagToRemove)
+    });
+  };
+  
+  const removeSubtask = (subtaskId: string) => {
+    setNewTask({
+      ...newTask,
+      subtasks: newTask.subtasks.filter(subtask => subtask.id !== subtaskId)
+    });
+  };
+
+  const toggleSubtaskInTask = (taskId: string, subtaskId: string) => {
+    const updatedTasks = tasks.map(task => {
+      if (task.id === taskId && task.subtasks) {
+        return {
+          ...task,
+          subtasks: task.subtasks.map(subtask => 
+            subtask.id === subtaskId ? 
+              { ...subtask, completed: !subtask.completed } : 
+              subtask
+          )
+        };
+      }
+      return task;
+    });
+    
+    setTasks(updatedTasks);
+    localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
   };
 
   return (
@@ -164,6 +205,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           tasks={tasks.filter(task => task.status === "todo")}
           columnId="todo"
           onDrop={handleDrop}
+          onTaskClick={openTaskDetail}
         />
         
         <KanbanColumn 
@@ -171,6 +213,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           tasks={tasks.filter(task => task.status === "in-progress")}
           columnId="in-progress"
           onDrop={handleDrop}
+          onTaskClick={openTaskDetail}
         />
         
         <KanbanColumn 
@@ -178,6 +221,7 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           tasks={tasks.filter(task => task.status === "review")}
           columnId="review"
           onDrop={handleDrop}
+          onTaskClick={openTaskDetail}
         />
         
         <KanbanColumn 
@@ -185,69 +229,171 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           tasks={tasks.filter(task => task.status === "completed")}
           columnId="completed"
           onDrop={handleDrop}
+          onTaskClick={openTaskDetail}
         />
       </div>
 
+      {/* New Task Dialog */}
       <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Add New Task</DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div>
-              <label htmlFor="title" className="text-sm font-medium block mb-1">
-                Title
-              </label>
-              <Input 
-                id="title"
-                value={newTask.title}
-                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
-                placeholder="Task title"
-              />
-            </div>
+          <Tabs defaultValue="details">
+            <TabsList className="grid grid-cols-3 mb-4">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="subtasks">Subtasks</TabsTrigger>
+              <TabsTrigger value="tags">Tags</TabsTrigger>
+            </TabsList>
             
-            <div>
-              <label htmlFor="description" className="text-sm font-medium block mb-1">
-                Description
-              </label>
-              <Textarea 
-                id="description"
-                value={newTask.description}
-                onChange={(e) => setNewTask({...newTask, description: e.target.value})}
-                placeholder="Task description"
-                rows={3}
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="priority" className="text-sm font-medium block mb-1">
-                Priority
-              </label>
-              <select
-                id="priority"
-                value={newTask.priority}
-                onChange={(e) => setNewTask({...newTask, priority: e.target.value as "low" | "medium" | "high"})}
-                className="w-full border border-input px-3 py-2 rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-            
-            <div>
-              <label htmlFor="dueDate" className="text-sm font-medium block mb-1">
-                Due Date
-              </label>
-              <Input 
-                id="dueDate"
-                type="date"
-                value={newTask.dueDate}
-                onChange={(e) => setNewTask({...newTask, dueDate: e.target.value})}
-              />
-            </div>
-          </div>
+            <TabsContent value="details" className="space-y-4">
+              <div>
+                <label htmlFor="title" className="text-sm font-medium block mb-1">
+                  Title
+                </label>
+                <Input 
+                  id="title"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+                  placeholder="Task title"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="description" className="text-sm font-medium block mb-1">
+                  Description
+                </label>
+                <Textarea 
+                  id="description"
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({...newTask, description: e.target.value})}
+                  placeholder="Task description"
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="assignee" className="text-sm font-medium block mb-1">
+                  Assignee
+                </label>
+                <Input 
+                  id="assignee"
+                  value={newTask.assignee.name}
+                  onChange={(e) => setNewTask({...newTask, assignee: { name: e.target.value }})}
+                  placeholder="Assignee name"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="priority" className="text-sm font-medium block mb-1">
+                  Priority
+                </label>
+                <select
+                  id="priority"
+                  value={newTask.priority}
+                  onChange={(e) => setNewTask({...newTask, priority: e.target.value as "low" | "medium" | "high"})}
+                  className="w-full border border-input px-3 py-2 rounded-md bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium block mb-1">
+                  Due Date
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-start text-left">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {selectedDate ? format(selectedDate, 'PPP') : "Select a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        setSelectedDate(date);
+                        if (date) {
+                          setNewTask({...newTask, dueDate: format(date, 'yyyy-MM-dd')});
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="subtasks" className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={newSubtask}
+                  onChange={(e) => setNewSubtask(e.target.value)}
+                  placeholder="Add a subtask"
+                  onKeyDown={(e) => e.key === 'Enter' && addSubtask()}
+                />
+                <Button onClick={addSubtask} type="button" size="sm">Add</Button>
+              </div>
+              
+              {newTask.subtasks.length > 0 ? (
+                <div className="space-y-2">
+                  {newTask.subtasks.map((subtask) => (
+                    <div key={subtask.id} className="flex items-center justify-between gap-2 p-2 bg-secondary/50 rounded-md">
+                      <div className="flex items-center gap-2">
+                        <Checkbox id={subtask.id} checked={subtask.completed} />
+                        <label htmlFor={subtask.id} className="text-sm">{subtask.title}</label>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => removeSubtask(subtask.id)}
+                        className="h-6 w-6 p-0 text-destructive"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No subtasks added yet</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="tags" className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={newTaskTag}
+                  onChange={(e) => setNewTaskTag(e.target.value)}
+                  placeholder="Add a tag"
+                  onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                />
+                <Button onClick={addTag} type="button" size="sm">Add</Button>
+              </div>
+              
+              {newTask.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {newTask.tags.map((tag) => (
+                    <div key={tag} className="flex items-center gap-1 px-2 py-1 bg-secondary rounded-full">
+                      <span className="text-xs">{tag}</span>
+                      <button 
+                        onClick={() => removeTag(tag)}
+                        className="text-xs text-destructive hover:text-destructive/80"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No tags added yet</p>
+              )}
+            </TabsContent>
+          </Tabs>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewTaskOpen(false)}>
@@ -259,6 +405,253 @@ export function KanbanBoard({ projectId }: KanbanBoardProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Task Detail Dialog */}
+      {selectedTask && (
+        <Dialog open={!!selectedTask} onOpenChange={closeTaskDetail}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{selectedTask.title}</DialogTitle>
+            </DialogHeader>
+            
+            <Tabs defaultValue="details">
+              <TabsList className="grid grid-cols-3 mb-4">
+                <TabsTrigger value="details">Details</TabsTrigger>
+                <TabsTrigger value="subtasks">Subtasks</TabsTrigger>
+                <TabsTrigger value="tags">Tags</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="details" className="space-y-4">
+                <p className="text-sm">{selectedTask.description}</p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">Status</h3>
+                    <select
+                      value={selectedTask.status}
+                      onChange={(e) => setSelectedTask({
+                        ...selectedTask, 
+                        status: e.target.value as Task["status"]
+                      })}
+                      className="w-full border border-input px-3 py-2 rounded-md bg-background"
+                    >
+                      <option value="todo">To Do</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="review">Review</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium mb-1">Priority</h3>
+                    <select
+                      value={selectedTask.priority}
+                      onChange={(e) => setSelectedTask({
+                        ...selectedTask, 
+                        priority: e.target.value as Task["priority"]
+                      })}
+                      className="w-full border border-input px-3 py-2 rounded-md bg-background"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Assignee</h3>
+                  <Input
+                    value={selectedTask.assignee?.name || ""}
+                    onChange={(e) => setSelectedTask({
+                      ...selectedTask,
+                      assignee: { ...selectedTask.assignee, name: e.target.value }
+                    })}
+                    placeholder="Assign to someone"
+                  />
+                </div>
+                
+                <div>
+                  <h3 className="text-sm font-medium mb-1">Due Date</h3>
+                  <Input
+                    type="date"
+                    value={selectedTask.dueDate}
+                    onChange={(e) => setSelectedTask({
+                      ...selectedTask,
+                      dueDate: e.target.value
+                    })}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="subtasks" className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={newSubtask}
+                    onChange={(e) => setNewSubtask(e.target.value)}
+                    placeholder="Add a subtask"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newSubtask.trim()) {
+                        const updatedTask = {
+                          ...selectedTask,
+                          subtasks: [
+                            ...(selectedTask.subtasks || []),
+                            { id: `subtask-${Date.now()}`, title: newSubtask, completed: false }
+                          ]
+                        };
+                        setSelectedTask(updatedTask);
+                        setNewSubtask("");
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={() => {
+                      if (newSubtask.trim()) {
+                        const updatedTask = {
+                          ...selectedTask,
+                          subtasks: [
+                            ...(selectedTask.subtasks || []),
+                            { id: `subtask-${Date.now()}`, title: newSubtask, completed: false }
+                          ]
+                        };
+                        setSelectedTask(updatedTask);
+                        setNewSubtask("");
+                      }
+                    }} 
+                    type="button" 
+                    size="sm"
+                  >
+                    Add
+                  </Button>
+                </div>
+                
+                {selectedTask.subtasks && selectedTask.subtasks.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedTask.subtasks.map((subtask) => (
+                      <div key={subtask.id} className="flex items-center justify-between gap-2 p-2 bg-secondary/50 rounded-md">
+                        <div className="flex items-center gap-2">
+                          <Checkbox 
+                            id={subtask.id} 
+                            checked={subtask.completed}
+                            onCheckedChange={() => {
+                              const updatedTask = {
+                                ...selectedTask,
+                                subtasks: selectedTask.subtasks?.map(st => 
+                                  st.id === subtask.id ? { ...st, completed: !st.completed } : st
+                                )
+                              };
+                              setSelectedTask(updatedTask);
+                            }}
+                          />
+                          <label 
+                            htmlFor={subtask.id} 
+                            className={`text-sm ${subtask.completed ? 'line-through text-muted-foreground' : ''}`}
+                          >
+                            {subtask.title}
+                          </label>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            const updatedTask = {
+                              ...selectedTask,
+                              subtasks: selectedTask.subtasks?.filter(st => st.id !== subtask.id)
+                            };
+                            setSelectedTask(updatedTask);
+                          }}
+                          className="h-6 w-6 p-0 text-destructive"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No subtasks added yet</p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="tags" className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Input 
+                    value={newTaskTag}
+                    onChange={(e) => setNewTaskTag(e.target.value)}
+                    placeholder="Add a tag"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && newTaskTag.trim()) {
+                        if (selectedTask.tags && selectedTask.tags.includes(newTaskTag)) {
+                          toast.error("Tag already exists");
+                          return;
+                        }
+                        const updatedTask = {
+                          ...selectedTask,
+                          tags: [...(selectedTask.tags || []), newTaskTag]
+                        };
+                        setSelectedTask(updatedTask);
+                        setNewTaskTag("");
+                      }
+                    }}
+                  />
+                  <Button 
+                    onClick={() => {
+                      if (newTaskTag.trim()) {
+                        if (selectedTask.tags && selectedTask.tags.includes(newTaskTag)) {
+                          toast.error("Tag already exists");
+                          return;
+                        }
+                        const updatedTask = {
+                          ...selectedTask,
+                          tags: [...(selectedTask.tags || []), newTaskTag]
+                        };
+                        setSelectedTask(updatedTask);
+                        setNewTaskTag("");
+                      }
+                    }} 
+                    type="button" 
+                    size="sm"
+                  >
+                    Add
+                  </Button>
+                </div>
+                
+                {selectedTask.tags && selectedTask.tags.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedTask.tags.map((tag) => (
+                      <div key={tag} className="flex items-center gap-1 px-2 py-1 bg-secondary rounded-full">
+                        <span className="text-xs">{tag}</span>
+                        <button 
+                          onClick={() => {
+                            const updatedTask = {
+                              ...selectedTask,
+                              tags: selectedTask.tags?.filter(t => t !== tag)
+                            };
+                            setSelectedTask(updatedTask);
+                          }}
+                          className="text-xs text-destructive hover:text-destructive/80"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No tags added yet</p>
+                )}
+              </TabsContent>
+            </Tabs>
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={closeTaskDetail}>
+                Cancel
+              </Button>
+              <Button onClick={() => updateTask(selectedTask)}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

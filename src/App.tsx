@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import Dashboard from "./pages/Dashboard";
 import Kanban from "./pages/Kanban";
+import TaskTemplates from "./pages/TaskTemplates";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/kanban" element={<Kanban />} />
+            <Route path="/task-templates" element={<TaskTemplates />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

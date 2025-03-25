@@ -11,10 +11,16 @@ export interface Task {
   description?: string;
   priority: "low" | "medium" | "high";
   dueDate?: string;
+  tags?: string[];
   assignee?: {
     name: string;
     avatar?: string;
   };
+  subtasks?: {
+    id: string;
+    title: string;
+    completed: boolean;
+  }[];
 }
 
 interface KanbanColumnProps {
@@ -22,9 +28,16 @@ interface KanbanColumnProps {
   tasks: Task[];
   columnId: string;
   onDrop: (taskId: string, columnId: string) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
-export function KanbanColumn({ title, tasks, columnId, onDrop }: KanbanColumnProps) {
+export function KanbanColumn({ 
+  title, 
+  tasks, 
+  columnId, 
+  onDrop,
+  onTaskClick
+}: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
   
   const handleDragOver = (e: React.DragEvent) => {
@@ -70,16 +83,13 @@ export function KanbanColumn({ title, tasks, columnId, onDrop }: KanbanColumnPro
             key={task.id}
             draggable
             onDragStart={(e) => handleDragStart(e, task.id)}
+            onClick={() => onTaskClick && onTaskClick(task)}
+            className="cursor-pointer"
           >
             <KanbanTask task={task} />
           </div>
         ))}
       </div>
-      
-      <button className="w-full mt-4 py-2 flex items-center justify-center gap-1 rounded-md border border-dashed border-muted-foreground/30 text-sm text-muted-foreground hover:bg-secondary/80 transition-colors">
-        <Plus className="h-4 w-4" />
-        <span>Add Task</span>
-      </button>
     </div>
   );
 }
