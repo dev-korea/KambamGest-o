@@ -66,7 +66,7 @@ export function CreateProjectModal({
     };
     
     onProjectCreate(newProject);
-    toast.success("Projeto criado com sucesso");
+    toast.success("Project created successfully");
     form.reset();
     onOpenChange(false);
   };
@@ -75,9 +75,9 @@ export function CreateProjectModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Criar Novo Projeto</DialogTitle>
+          <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
-            Insira os detalhes para o seu novo projeto
+            Enter the details for your new project
           </DialogDescription>
         </DialogHeader>
         
@@ -88,9 +88,9 @@ export function CreateProjectModal({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Título do Projeto</FormLabel>
+                  <FormLabel>Project Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Digite o título do projeto" {...field} />
+                    <Input placeholder="Enter project title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -102,10 +102,10 @@ export function CreateProjectModal({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Descrição</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea 
-                      placeholder="Digite a descrição do projeto" 
+                      placeholder="Enter project description" 
                       className="resize-none" 
                       {...field} 
                     />
@@ -120,7 +120,7 @@ export function CreateProjectModal({
               name="dueDate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Data de Conclusão</FormLabel>
+                  <FormLabel>Due Date</FormLabel>
                   <FormControl>
                     <Input type="date" {...field} />
                   </FormControl>
@@ -131,9 +131,9 @@ export function CreateProjectModal({
             
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancelar
+                Cancel
               </Button>
-              <Button type="submit">Criar Projeto</Button>
+              <Button type="submit">Create Project</Button>
             </DialogFooter>
           </form>
         </Form>
