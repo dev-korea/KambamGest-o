@@ -47,13 +47,13 @@ export function ProjectCard({
           className="absolute top-2 right-2 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
         >
           <Trash2 className="h-4 w-4" />
-          <span className="sr-only">Delete project</span>
+          <span className="sr-only">Excluir projeto</span>
         </Button>
       )}
       
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 bg-secondary rounded-full">Project</span>
+          <span className="text-xs px-2 py-0.5 bg-secondary rounded-full">Projeto</span>
           <h3 className="text-lg font-medium">{title}</h3>
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
@@ -61,7 +61,7 @@ export function ProjectCard({
       
       <div className="mt-auto">
         <div className="flex justify-between items-center mb-2">
-          <span className="text-xs text-muted-foreground">Progress</span>
+          <span className="text-xs text-muted-foreground">Progresso</span>
           <span className="text-xs font-medium">{progress}%</span>
         </div>
         <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
@@ -80,7 +80,7 @@ export function ProjectCard({
       <div className="grid grid-cols-2 gap-2 mt-2">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <BarChart className="h-3.5 w-3.5" />
-          <span>{tasksCompleted}/{totalTasks} tasks</span>
+          <span>{tasksCompleted}/{totalTasks} tarefas</span>
         </div>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Calendar className="h-3.5 w-3.5" />

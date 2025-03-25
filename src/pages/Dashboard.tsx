@@ -20,13 +20,11 @@ export default function Dashboard() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [completedTasks, setCompletedTasks] = useState(0);
   
-  // Load projects from localStorage on mount
   useEffect(() => {
     const storedProjects = localStorage.getItem('projects');
     if (storedProjects) {
       const loadedProjects = JSON.parse(storedProjects);
       
-      // Calculate progress for each project
       const projectsWithProgress = loadedProjects.map((project: any) => {
         const updatedProject = { ...project };
         const projectTasks = localStorage.getItem(`tasks-${project.id}`);
@@ -39,12 +37,10 @@ export default function Dashboard() {
           updatedProject.totalTasks = totalTasks;
           updatedProject.tasksCompleted = completedTasksCount;
           
-          // Calculate progress percentage
           updatedProject.progress = totalTasks > 0 
             ? Math.round((completedTasksCount / totalTasks) * 100) 
             : 0;
         } else {
-          // No tasks yet
           updatedProject.totalTasks = 0;
           updatedProject.tasksCompleted = 0;
           updatedProject.progress = 0;
@@ -55,24 +51,19 @@ export default function Dashboard() {
       
       setProjects(projectsWithProgress);
     } else {
-      // Initialize with empty array
       setProjects([]);
       localStorage.setItem('projects', JSON.stringify([]));
     }
 
-    // Count all completed tasks across all projects
     countCompletedTasks();
   }, []);
 
-  // Count completed tasks across all projects
   const countCompletedTasks = () => {
     let totalCompleted = 0;
     
-    // Get all project IDs
     const storedProjects = localStorage.getItem('projects');
     const projects = storedProjects ? JSON.parse(storedProjects) : [];
     
-    // For each project, get its tasks and count completed ones
     projects.forEach((project: any) => {
       const projectTasks = localStorage.getItem(`tasks-${project.id}`);
       if (projectTasks) {
@@ -85,7 +76,6 @@ export default function Dashboard() {
     setCompletedTasks(totalCompleted);
   };
   
-  // Save projects to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('projects', JSON.stringify(projects));
   }, [projects]);
@@ -96,7 +86,6 @@ export default function Dashboard() {
   );
 
   const handleProjectCreate = (newProject: any) => {
-    // Initialize with zero progress
     const projectWithProgress = {
       ...newProject,
       progress: 0,
@@ -106,34 +95,29 @@ export default function Dashboard() {
     
     const updatedProjects = [...projects, projectWithProgress];
     setProjects(updatedProjects);
-    // Project is automatically saved to localStorage due to the useEffect above
   };
 
   const handleProjectDelete = (projectId: string) => {
-    // Delete project tasks from localStorage
     localStorage.removeItem(`tasks-${projectId}`);
     
     const updatedProjects = projects.filter(project => project.id !== projectId);
     setProjects(updatedProjects);
-    // Projects automatically saved to localStorage due to useEffect
-    toast("Project deleted successfully", {
-      description: "The project has been permanently removed.",
+    toast("Projeto excluído com sucesso", {
+      description: "O projeto foi removido permanentemente.",
     });
     
-    // Recount completed tasks after deletion
     setTimeout(() => {
       countCompletedTasks();
     }, 100);
   };
 
   const resetProjects = () => {
-    // Also remove all task data from localStorage
     projects.forEach(project => {
       localStorage.removeItem(`tasks-${project.id}`);
     });
     
     setProjects([]);
-    toast.success("All projects have been removed");
+    toast.success("Todos os projetos foram removidos");
     setCompletedTasks(0);
   };
 
@@ -148,8 +132,8 @@ export default function Dashboard() {
       <main className="container px-6 py-8 mx-auto">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
-            <h1 className="text-2xl font-medium">Projects Dashboard</h1>
-            <p className="text-muted-foreground">Manage and track your marketing projects</p>
+            <h1 className="text-2xl font-medium">Painel de Projetos</h1>
+            <p className="text-muted-foreground">Gerencie e acompanhe seus projetos de marketing</p>
           </div>
           
           <div className="flex gap-2">
@@ -159,7 +143,7 @@ export default function Dashboard() {
                 onClick={resetProjects}
                 className="self-start"
               >
-                Clear All Projects
+                Limpar Todos os Projetos
               </Button>
             )}
             <button 
@@ -167,7 +151,7 @@ export default function Dashboard() {
               onClick={() => setIsCreateModalOpen(true)}
             >
               <Plus className="h-4 w-4" />
-              <span>New Project</span>
+              <span>Novo Projeto</span>
             </button>
           </div>
         </div>
@@ -178,44 +162,43 @@ export default function Dashboard() {
               <div className="glass-card rounded-lg p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <StatCard 
-                    title="Active Projects"
+                    title="Projetos Ativos"
                     value={projects.length.toString()}
                     icon={<BarChart2 className="h-5 w-5" />}
-                    trend="+2 this month"
+                    trend="+2 este mês"
                     trendUp
                   />
                   
                   <StatCard 
-                    title="Completed Tasks"
+                    title="Tarefas Concluídas"
                     value={completedTasks.toString()}
                     icon={<PieChart className="h-5 w-5" />}
-                    trend={`${completedTasks > 0 ? completedTasks : 'No'} task${completedTasks !== 1 ? 's' : ''} this week`}
+                    trend={`${completedTasks > 0 ? completedTasks : 'Sem'} tarefa${completedTasks !== 1 ? 's' : ''} esta semana`}
                     trendUp={completedTasks > 0}
                   />
                   
                   <StatCard 
-                    title="Upcoming Deadlines"
+                    title="Prazos Próximos"
                     value="4"
                     icon={<CalendarDays className="h-5 w-5" />}
-                    trend="Next: Nov 15"
+                    trend="Próximo: 15 de nov"
                   />
                 </div>
               </div>
             </div>
             
-            {/* Project Tabs */}
             <div className="mb-4">
               <ToggleGroup type="single" value={selectedTab} onValueChange={(value) => value && setSelectedTab(value)}>
-                <ToggleGroupItem value="all" aria-label="All Projects">All Projects</ToggleGroupItem>
-                <ToggleGroupItem value="active" aria-label="Active">Active</ToggleGroupItem>
-                <ToggleGroupItem value="completed" aria-label="Completed">Completed</ToggleGroupItem>
+                <ToggleGroupItem value="all" aria-label="Todos os Projetos">Todos os Projetos</ToggleGroupItem>
+                <ToggleGroupItem value="active" aria-label="Ativos">Ativos</ToggleGroupItem>
+                <ToggleGroupItem value="completed" aria-label="Concluídos">Concluídos</ToggleGroupItem>
               </ToggleGroup>
             </div>
             
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <h2 className="text-xl font-medium">
-                {selectedTab === "all" ? "All Projects" : 
-                selectedTab === "active" ? "Active Projects" : "Completed Projects"}
+                {selectedTab === "all" ? "Todos os Projetos" : 
+                selectedTab === "active" ? "Projetos Ativos" : "Projetos Concluídos"}
               </h2>
               
               <div className="flex items-center gap-2">
@@ -223,7 +206,7 @@ export default function Dashboard() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder="Search projects..."
+                    placeholder="Buscar projetos..."
                     className="pl-9 pr-4 py-2 rounded-md border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -231,12 +214,12 @@ export default function Dashboard() {
                 </div>
                 
                 <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value)}>
-                  <ToggleGroupItem value="grid" aria-label="Grid View">
-                    <div className="sr-only">Grid View</div>
+                  <ToggleGroupItem value="grid" aria-label="Visualização em Grade">
+                    <div className="sr-only">Visualização em Grade</div>
                     <TabletSmartphone className="h-4 w-4" />
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="list" aria-label="List View">
-                    <div className="sr-only">List View</div>
+                  <ToggleGroupItem value="list" aria-label="Visualização em Lista">
+                    <div className="sr-only">Visualização em Lista</div>
                     <Filter className="h-4 w-4" />
                   </ToggleGroupItem>
                 </ToggleGroup>
@@ -255,7 +238,7 @@ export default function Dashboard() {
                     title={project.title}
                     description={project.description}
                     progress={project.progress || 0}
-                    dueDate={project.dueDate || "No deadline"}
+                    dueDate={project.dueDate || "Sem prazo"}
                     tasksCompleted={project.tasksCompleted || 0}
                     totalTasks={project.totalTasks || 0}
                     onClick={() => handleProjectClick(project.id)}
@@ -272,13 +255,13 @@ export default function Dashboard() {
                 <BarChart2 className="h-10 w-10 text-muted-foreground" />
               </div>
             </div>
-            <h2 className="text-2xl font-semibold">No projects yet</h2>
+            <h2 className="text-2xl font-semibold">Nenhum projeto ainda</h2>
             <p className="text-muted-foreground mt-2 mb-8">
-              Create your first project to get started
+              Crie seu primeiro projeto para começar
             </p>
             <Button onClick={() => setIsCreateModalOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Project
+              Criar Projeto
             </Button>
           </div>
         )}

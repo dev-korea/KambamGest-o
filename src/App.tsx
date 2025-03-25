@@ -12,6 +12,7 @@ import MyTasks from "./pages/MyTasks";
 import TaskTemplates from "./pages/TaskTemplates";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { TutorialModal } from "./components/TutorialModal";
 
 const queryClient = new QueryClient();
 
@@ -28,7 +29,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, []);
   
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    return <div className="min-h-screen flex items-center justify-center">Carregando...</div>;
   }
   
   return isAuthenticated ? (
@@ -46,6 +47,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <TutorialModal />
             <Routes>
               <Route path="/" element={<Navigate to="/auth" replace />} />
               <Route path="/auth" element={<Auth />} />

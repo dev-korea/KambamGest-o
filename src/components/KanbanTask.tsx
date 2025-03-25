@@ -1,15 +1,36 @@
 
-import { Clock, Tag } from "lucide-react";
+import { Clock, Tag, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Task } from "./KanbanColumn";
+import { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
 
 interface KanbanTaskProps {
   task: Task;
+  onUpdateNotes?: (taskId: string, notes: string) => void;
 }
 
-export function KanbanTask({ task }: KanbanTaskProps) {
+export function KanbanTask({ task, onUpdateNotes }: KanbanTaskProps) {
+  const [showNotes, setShowNotes] = useState(false);
+  const [notes, setNotes] = useState(task.notes || "");
+  
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("taskId", task.id);
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setNotes(e.target.value);
+  };
+
+  const saveNotes = () => {
+    if (onUpdateNotes) {
+      onUpdateNotes(task.id, notes);
+      toast("Anotações salvas", {
+        description: "Suas anotações foram salvas com sucesso."
+      });
+    }
   };
 
   return (
@@ -48,6 +69,42 @@ export function KanbanTask({ task }: KanbanTaskProps) {
           <div className="flex items-center gap-1.5">
             <div className="h-6 w-6 rounded-full bg-secondary flex items-center justify-center text-xs font-medium">
               {task.assignee.name.charAt(0)}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-3 pt-2 border-t border-border">
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            setShowNotes(!showNotes);
+          }}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+        >
+          <Pencil className="h-3 w-3" />
+          <span>{showNotes ? "Ocultar anotações" : "Mostrar anotações"}</span>
+        </button>
+
+        {showNotes && (
+          <div className="mt-2 animate-fade-in">
+            <Textarea
+              value={notes}
+              onChange={handleNotesChange}
+              placeholder="Adicione suas anotações aqui..."
+              className="min-h-[80px] text-sm"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <div className="flex justify-end mt-2">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  saveNotes();
+                }}
+                className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs"
+              >
+                Salvar
+              </button>
             </div>
           </div>
         )}

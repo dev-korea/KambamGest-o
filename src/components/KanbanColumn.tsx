@@ -12,6 +12,7 @@ export interface Task {
   priority: "low" | "medium" | "high";
   dueDate?: string;
   tags?: string[];
+  notes?: string;
   assignee?: {
     name: string;
     avatar?: string;
@@ -29,6 +30,7 @@ interface KanbanColumnProps {
   columnId: string;
   onDrop: (taskId: string, columnId: string) => void;
   onTaskClick?: (task: Task) => void;
+  onUpdateNotes?: (taskId: string, notes: string) => void;
 }
 
 export function KanbanColumn({ 
@@ -36,7 +38,8 @@ export function KanbanColumn({
   tasks, 
   columnId, 
   onDrop,
-  onTaskClick
+  onTaskClick,
+  onUpdateNotes
 }: KanbanColumnProps) {
   const [isOver, setIsOver] = useState(false);
   
@@ -86,7 +89,10 @@ export function KanbanColumn({
             onClick={() => onTaskClick && onTaskClick(task)}
             className="cursor-pointer"
           >
-            <KanbanTask task={task} />
+            <KanbanTask 
+              task={task} 
+              onUpdateNotes={onUpdateNotes}
+            />
           </div>
         ))}
       </div>

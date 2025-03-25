@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
-import { KanbanBoard } from "@/components/KanbanBoard";
+import { KanbanBoardWithNotes } from "@/components/KanbanBoardWithNotes";
 import { ProjectOverview } from "@/components/ProjectOverview";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -32,11 +32,11 @@ export default function Kanban() {
         setProject(foundProject);
         updateTaskStats(projectId);
       } else {
-        toast.error("Project not found");
+        toast.error("Projeto não encontrado");
         navigate('/dashboard'); // Redirect to dashboard if project doesn't exist
       }
     } else {
-      toast.error("No project ID provided");
+      toast.error("ID do projeto não fornecido");
       navigate('/dashboard'); // Redirect to dashboard
     }
   }, [searchParams, navigate]);
@@ -109,8 +109,8 @@ export default function Kanban() {
         <NavBar />
         <main className="container px-6 py-8 mx-auto pt-24">
           <div className="text-center">
-            <h1 className="text-2xl font-medium mb-4">Project Not Found</h1>
-            <p className="text-muted-foreground">Please select a project from the dashboard.</p>
+            <h1 className="text-2xl font-medium mb-4">Projeto Não Encontrado</h1>
+            <p className="text-muted-foreground">Por favor, selecione um projeto no painel.</p>
           </div>
         </main>
       </div>
@@ -126,16 +126,16 @@ export default function Kanban() {
           <h1 className="text-2xl font-medium">{project.title}</h1>
           <p className="text-muted-foreground">{project.description}</p>
           <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Progress: {taskStats.progress}%</span>
+            <span>Progresso: {taskStats.progress}%</span>
             <span>•</span>
-            <span>{taskStats.completed}/{taskStats.total} tasks completed</span>
+            <span>{taskStats.completed}/{taskStats.total} tarefas concluídas</span>
           </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="tasks">Task Board</TabsTrigger>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+            <TabsTrigger value="tasks">Quadro de Tarefas</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="mt-6">
@@ -147,7 +147,7 @@ export default function Kanban() {
           </TabsContent>
           
           <TabsContent value="tasks" className="mt-6">
-            <KanbanBoard 
+            <KanbanBoardWithNotes 
               projectId={project.id} 
               onTasksChanged={handleTasksChanged}
             />
