@@ -1,5 +1,5 @@
 
-import { format, isValid, parse } from "date-fns";
+import { format, isValid, parse, isSameDay, isAfter, isBefore, subDays } from "date-fns";
 
 // This utility ensures consistent mapping between different task status formats
 
@@ -67,7 +67,7 @@ export function parseDateString(dateString: string): Date | null {
   
   let result: Date | null = null;
   
-  // Try ISO format (YYYY-MM-DD)
+  // Try direct Date parsing for ISO format (YYYY-MM-DD)
   if (dateString.includes('-')) {
     result = new Date(dateString);
     if (isValid(result)) return result;
@@ -76,7 +76,8 @@ export function parseDateString(dateString: string): Date | null {
   // Try DD/MM/YYYY format
   if (dateString.includes('/')) {
     try {
-      result = parse(dateString, 'dd/MM/yyyy', new Date());
+      const [day, month, year] = dateString.split('/').map(Number);
+      result = new Date(year, month - 1, day);
       if (isValid(result)) return result;
     } catch (e) {
       console.error("Error parsing date:", e);
@@ -117,7 +118,7 @@ export function isTaskOverdue(dueDate: string): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  return taskDate < today;
+  return isBefore(taskDate, today);
 }
 
 // Check if a task is due today
@@ -128,10 +129,9 @@ export function isTaskDueToday(dueDate: string): boolean {
   if (!taskDate) return false;
   
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
-  return taskDate.getDate() === today.getDate() && 
-         taskDate.getMonth() === today.getMonth() && 
-         taskDate.getFullYear() === today.getFullYear();
+  return isSameDay(taskDate, today);
 }
 
 // Check if a task was completed yesterday
@@ -141,13 +141,23 @@ export function wasCompletedYesterday(task: any): boolean {
   // Check if the task has a completedDate field
   if (task.completedDate) {
     const completedDate = new Date(task.completedDate);
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterday = subDays(new Date(), 1);
     
-    return completedDate.getDate() === yesterday.getDate() && 
-           completedDate.getMonth() === yesterday.getMonth() && 
-           completedDate.getFullYear() === yesterday.getFullYear();
+    return isSameDay(completedDate, yesterday);
   }
   
   return false;
+}
+
+// Normalize date format for consistent storage - always use YYYY-MM-DD
+export function normalizeDate(date: Date | string | null): string {
+  if (!date) return "";
+  
+  const dateObj = typeof date === "string" ? parseDateString(date) : date;
+  
+  if (!dateObj || !isValid(dateObj)) {
+    return "";
+  }
+  
+  return format(dateObj, 'yyyy-MM-dd');
 }

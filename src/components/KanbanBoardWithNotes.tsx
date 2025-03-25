@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
@@ -15,10 +14,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
-// Status types for the Kanban columns
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
 
-// Kanban column configuration
 const columns = [
   { id: "pending", title: "Pendente" },
   { id: "in_progress", title: "Em Progresso" },
@@ -26,14 +23,12 @@ const columns = [
   { id: "completed", title: "Concluído" }
 ];
 
-// Props for the KanbanBoard component
 interface KanbanBoardProps {
   projectId: string;
   onTasksChanged?: () => void;
 }
 
 export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardProps) {
-  // State for the tasks in the board
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -52,39 +47,41 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     linkedProjects: [] as string[],
     collaborators: [] as string[]
   });
-  
-  // Initial load of tasks
+
   useEffect(() => {
     loadTasks();
     
-    // Listen for undo events
     const handleUndoEvent = (event: CustomEvent) => {
       if (event.detail?.projectId === projectId) {
         loadTasks();
       }
     };
     
-    // Listen for general task updates
     const handleTaskUpdate = () => {
+      loadTasks();
+    };
+    
+    const handleDateChange = () => {
+      console.log("Detected task date change event, reloading tasks");
       loadTasks();
     };
     
     window.addEventListener('kanban-data-update', handleUndoEvent as EventListener);
     window.addEventListener('taskUpdated', handleTaskUpdate);
+    window.addEventListener('taskDateChanged', handleDateChange);
     
     return () => {
       window.removeEventListener('kanban-data-update', handleUndoEvent as EventListener);
       window.removeEventListener('taskUpdated', handleTaskUpdate);
+      window.removeEventListener('taskDateChanged', handleDateChange);
     };
   }, [projectId]);
   
-  // Load tasks from localStorage
   const loadTasks = () => {
     const storedTasks = localStorage.getItem(`tasks-${projectId}`);
     if (storedTasks) {
       try {
         const parsedTasks = JSON.parse(storedTasks);
-        // Ensure all tasks have normalized status
         const normalizedTasks = parsedTasks.map((task: Task) => ({
           ...task,
           status: normalizeStatus(task.status)
@@ -95,7 +92,6 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
         setTasks([]);
       }
     } else {
-      // Initialize with some example tasks if none exist
       const exampleTasks = [
         {
           id: "task-1",
@@ -103,7 +99,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Analisar concorrentes e identificar oportunidades para o produto",
           priority: "high" as const,
           status: "pending" as StatusType,
-          dueDate: format(new Date(), 'yyyy-MM-dd'), // Set to today
+          dueDate: format(new Date(), 'yyyy-MM-dd'),
           tags: ["Pesquisa", "Marketing"]
         },
         {
@@ -112,7 +108,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Desenvolver wireframes de alta fidelidade para a página inicial",
           priority: "medium" as const,
           status: "in_progress" as StatusType,
-          dueDate: format(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 5 days from now
+          dueDate: format(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
           tags: ["Design", "UI/UX"],
           assignee: {
             name: "Maria"
@@ -124,7 +120,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Criar estratégia de lançamento para o novo produto",
           priority: "medium" as const,
           status: "pending" as StatusType,
-          dueDate: format(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 10 days from now
+          dueDate: format(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
           tags: ["Estratégia", "Marketing"]
         },
         {
@@ -133,12 +129,12 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
           description: "Criar um protótipo funcional da solução",
           priority: "low" as const,
           status: "completed" as StatusType,
-          dueDate: format(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'), // 2 days ago
+          dueDate: format(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
           tags: ["Desenvolvimento"],
           assignee: {
             name: "João"
           },
-          completedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString() // Completed yesterday
+          completedDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
         }
       ];
       
@@ -146,32 +142,25 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       localStorage.setItem(`tasks-${projectId}`, JSON.stringify(exampleTasks));
     }
   };
-  
-  // Save tasks to localStorage and trigger callback
+
   const saveTasks = (updatedTasks: Task[]) => {
     setTasks(updatedTasks);
     localStorage.setItem(`tasks-${projectId}`, JSON.stringify(updatedTasks));
     
-    // Notify parent component of tasks change
     if (onTasksChanged) {
       onTasksChanged();
     }
     
-    // Dispatch event to update daily view
     window.dispatchEvent(new CustomEvent('taskUpdated'));
   };
-  
-  // Handle task drag and drop
+
   const handleDrop = (taskId: string, targetColumnId: string) => {
-    // Find the task
     const taskToUpdate = tasks.find(task => task.id === taskId);
     
     if (!taskToUpdate) return;
     
-    // If task is already in the target column, do nothing
     if (taskToUpdate.status === targetColumnId) return;
     
-    // Save the previous state for undo
     undoSystem.addAction({
       type: 'MOVE_TASK',
       projectId,
@@ -182,16 +171,13 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       timestamp: Date.now()
     });
     
-    // Add completed date if task is being moved to completed
     let taskUpdates: Partial<Task> = { status: targetColumnId as any };
     if (targetColumnId === "completed") {
       taskUpdates.completedDate = new Date().toISOString();
     } else if (taskToUpdate.status === "completed") {
-      // If moving from completed to another status, remove completedDate
       taskUpdates.completedDate = undefined;
     }
     
-    // Create a new array with the updated task
     const updatedTasks = tasks.map(task => 
       task.id === taskId 
         ? { ...task, ...taskUpdates } 
@@ -204,20 +190,15 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       description: `Tarefa movida para "${columns.find(col => col.id === targetColumnId)?.title}"`,
     });
   };
-  
-  // Handle task click - Currently a stub but could be used for task details view
+
   const handleTaskClick = (task: Task) => {
-    // To be implemented: show task details, edit task, etc.
     console.log("Task clicked:", task);
   };
 
-  // Handle task notes update
   const handleUpdateNotes = (taskId: string, notes: string) => {
-    // Find the original task for undo
     const originalTask = tasks.find(task => task.id === taskId);
     if (!originalTask) return;
     
-    // Save the original state for undo
     undoSystem.addAction({
       type: 'UPDATE_TASK',
       projectId,
@@ -234,13 +215,12 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     saveTasks(updatedTasks);
   };
 
-  // Handle task update (for collaborators, linked projects, etc)
   const handleUpdateTask = (taskId: string, updatedFields: Partial<Task>) => {
-    // Find the original task for undo
     const originalTask = tasks.find(task => task.id === taskId);
     if (!originalTask) return;
     
-    // Save the original state for undo
+    const isDateChange = 'dueDate' in updatedFields && originalTask.dueDate !== updatedFields.dueDate;
+    
     undoSystem.addAction({
       type: 'UPDATE_TASK',
       projectId,
@@ -255,15 +235,16 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     );
     
     saveTasks(updatedTasks);
+    
+    if (isDateChange) {
+      window.dispatchEvent(new CustomEvent('taskDateChanged'));
+    }
   };
 
-  // Handle task deletion
   const handleDeleteTask = (taskId: string) => {
-    // Find the task to be deleted for undo
     const taskToDelete = tasks.find(task => task.id === taskId);
     if (!taskToDelete) return;
     
-    // Save the deleted task for potential undo
     undoSystem.addAction({
       type: 'DELETE_TASK',
       projectId,
@@ -279,12 +260,13 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     });
   };
 
-  // Add new task
   const addNewTask = () => {
     if (!newTask.title.trim()) {
       toast.error("Título da tarefa é obrigatório");
       return;
     }
+    
+    const normalizedDueDate = newTask.dueDate ? normalizeDate(new Date(newTask.dueDate)) : "";
 
     const newTaskItem: Task = {
       id: `task-${Date.now()}`,
@@ -292,7 +274,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       description: newTask.description,
       status: newTask.status as Task["status"],
       priority: newTask.priority,
-      dueDate: newTask.dueDate,
+      dueDate: normalizedDueDate,
       tags: newTask.tags || [],
       assignee: newTask.assignee.name ? { name: newTask.assignee.name } : undefined,
       linkedProjects: newTask.linkedProjects || [],
@@ -300,11 +282,9 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       completedDate: newTask.status === "completed" ? new Date().toISOString() : undefined
     };
     
-    // Add the task first
     const updatedTasks = [...tasks, newTaskItem];
     saveTasks(updatedTasks);
     
-    // Register the action for potential undo
     undoSystem.addAction({
       type: 'ADD_TASK',
       projectId,
@@ -325,11 +305,14 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       collaborators: []
     });
     setSelectedDate(undefined);
+    
+    if (normalizedDueDate) {
+      window.dispatchEvent(new CustomEvent('taskDateChanged'));
+    }
 
     toast.success("Tarefa adicionada com sucesso");
   };
-  
-  // Group tasks by status
+
   const tasksByStatus = columns.reduce<Record<string, Task[]>>((acc, column) => {
     acc[column.id] = tasks.filter(task => {
       const normalizedStatus = normalizeStatus(task.status);
@@ -340,7 +323,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     });
     return acc;
   }, {});
-  
+
   return (
     <div className="flex flex-col gap-4 md:gap-6">
       <div className="flex justify-between items-center mb-2 md:mb-4">
@@ -367,7 +350,6 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
         ))}
       </div>
 
-      {/* Nova Tarefa Dialog */}
       <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
         <DialogContent className={`max-w-md max-h-[90vh] ${isMobile ? 'w-[95%] p-4' : ''} overflow-y-auto`}>
           <DialogHeader>

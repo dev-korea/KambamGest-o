@@ -14,6 +14,7 @@ import { Task } from "./KanbanColumn";
 import { toast } from "sonner";
 import { Calendar } from "@/components/ui/calendar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { normalizeDate, parseDateString } from "@/utils/taskStatusMapper";
 
 interface TaskDetailModalProps {
   task: Task;
@@ -43,26 +44,12 @@ export function TaskDetailModal({
     setEditedTask({ ...task });
     
     // Parse the date string to Date object
-    let dateObj: Date | undefined = undefined;
-    
     if (task.dueDate) {
-      // Try parsing different date formats
-      if (task.dueDate.includes('/')) {
-        // Format: DD/MM/YYYY
-        const [day, month, year] = task.dueDate.split('/').map(Number);
-        dateObj = new Date(year, month - 1, day);
-      } else {
-        // Format: YYYY-MM-DD or ISO string
-        dateObj = new Date(task.dueDate);
-      }
-      
-      // Validate the date is valid
-      if (!isValid(dateObj)) {
-        dateObj = undefined;
-      }
+      const dateObj = parseDateString(task.dueDate);
+      setSelectedDate(dateObj || undefined);
+    } else {
+      setSelectedDate(undefined);
     }
-    
-    setSelectedDate(dateObj);
   }, [task]);
 
   // Load registered users for assignee dropdown
@@ -80,13 +67,23 @@ export function TaskDetailModal({
 
   const handleSave = () => {
     if (onUpdateTask) {
+      const prevDate = task.dueDate;
+      const newDate = editedTask.dueDate;
+      
       // Make sure task has a valid status
       onUpdateTask(task.id, editedTask);
       
       // Dispatch a custom event to inform other components about the task update
       window.dispatchEvent(new CustomEvent('taskUpdated'));
       
+      // Additionally dispatch a specific event for date changes
+      if (prevDate !== newDate) {
+        console.log("Date changed from", prevDate, "to", newDate);
+        window.dispatchEvent(new CustomEvent('taskDateChanged'));
+      }
+      
       onOpenChange(false);
+      toast.success("Tarefa atualizada com sucesso");
     }
   };
 
@@ -170,7 +167,7 @@ export function TaskDetailModal({
     setSelectedDate(date);
     if (date) {
       // Format date consistently as yyyy-MM-dd for storage
-      const formattedDate = format(date, 'yyyy-MM-dd');
+      const formattedDate = normalizeDate(date);
       setEditedTask({
         ...editedTask,
         dueDate: formattedDate
@@ -282,13 +279,13 @@ export function TaskDetailModal({
                     {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Selecione uma data"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" onClick={(e) => e.stopPropagation()}>
+                <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
                   <Calendar
                     mode="single"
                     selected={selectedDate}
                     onSelect={handleDateSelect}
                     initialFocus
-                    className="p-3"
+                    className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>

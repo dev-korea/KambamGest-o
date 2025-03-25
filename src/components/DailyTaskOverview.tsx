@@ -4,7 +4,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Clock, AlertTriangle, CheckCircle2, Calendar } from "lucide-react";
-import { isTaskOverdue, isTaskDueToday, wasCompletedYesterday, normalizeStatus } from "@/utils/taskStatusMapper";
+import { 
+  isTaskOverdue, 
+  isTaskDueToday, 
+  wasCompletedYesterday, 
+  normalizeStatus, 
+  parseDateString 
+} from "@/utils/taskStatusMapper";
 
 interface Task {
   id: string;
@@ -37,17 +43,20 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
   const [yesterdayCompletedTasks, setYesterdayCompletedTasks] = useState<TaskWithProject[]>([]);
   
   useEffect(() => {
+    // Initial load
     loadAllTasks();
     
-    // Add event listener to reload tasks when localStorage changes
+    // Add event listeners for task updates
     window.addEventListener('storage', handleStorageChange);
-    
-    // Add custom event listener for task updates
     window.addEventListener('taskUpdated', loadAllTasks);
+    
+    // Custom event for date changes specifically
+    window.addEventListener('taskDateChanged', loadAllTasks);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('taskUpdated', loadAllTasks);
+      window.removeEventListener('taskDateChanged', loadAllTasks);
     };
   }, []);
   
@@ -60,6 +69,7 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
   
   const loadAllTasks = () => {
     try {
+      console.log("Loading all tasks for daily overview");
       const projects = JSON.parse(localStorage.getItem('projects') || '[]');
       
       const allTasksWithProject: TaskWithProject[] = [];
@@ -80,23 +90,27 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
           
           allTasksWithProject.push(taskWithProject);
           
-          // Parse the date properly regardless of format
-          const normalizedDueDate = task.dueDate ? 
-            (task.dueDate.includes('/') ? task.dueDate : 
-             new Date(task.dueDate).toLocaleDateString('pt-BR')) : '';
-          
-          if (isTaskDueToday(normalizedDueDate)) {
+          // Check if task is due today
+          if (isTaskDueToday(task.dueDate)) {
             today.push(taskWithProject);
           }
           
-          if (isTaskOverdue(normalizedDueDate)) {
+          // Check if task is overdue
+          if (isTaskOverdue(task.dueDate)) {
             overdue.push(taskWithProject);
           }
           
+          // Check if task was completed yesterday
           if (wasCompletedYesterday(task)) {
             yesterdayCompleted.push(taskWithProject);
           }
         });
+      });
+      
+      console.log("Daily tasks loaded:", {
+        today: today.length,
+        overdue: overdue.length,
+        yesterdayCompleted: yesterdayCompleted.length
       });
       
       setTodayTasks(today);
