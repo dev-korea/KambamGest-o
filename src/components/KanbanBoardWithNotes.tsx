@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
-import { Plus, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, ListTodo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,10 @@ import { undoSystem } from "@/utils/undoSystem";
 import { mapStatusToBoardFormat, normalizeStatus, normalizeDate } from "@/utils/taskStatusMapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
 
@@ -32,6 +34,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   const [newTask, setNewTask] = useState({
     title: "",
@@ -348,6 +351,10 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     resetNewTaskForm();
   };
 
+  const handleUseExistingTemplate = () => {
+    navigate(`/task-templates?projectId=${projectId}`);
+  };
+
   const tasksByStatus = columns.reduce<Record<string, Task[]>>((acc, column) => {
     acc[column.id] = tasks.filter(task => {
       const normalizedStatus = normalizeStatus(task.status);
@@ -363,10 +370,25 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     <div className="flex flex-col gap-4 md:gap-6">
       <div className="flex justify-between items-center mb-2 md:mb-4">
         <h2 className="text-lg md:text-xl font-medium">Quadro de Tarefas</h2>
-        <Button onClick={() => setNewTaskOpen(true)} className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm">
-          <Plus className="h-3 w-3 md:h-4 md:w-4" />
-          <span>Adicionar Tarefa</span>
-        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1 md:py-2 text-xs md:text-sm">
+              <Plus className="h-3 w-3 md:h-4 md:w-4" />
+              <span>Adicionar Tarefa</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => setNewTaskOpen(true)} className="flex items-center gap-2 cursor-pointer">
+              <Plus className="h-4 w-4" />
+              <span>Criar Nova Tarefa</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleUseExistingTemplate} className="flex items-center gap-2 cursor-pointer">
+              <ListTodo className="h-4 w-4" />
+              <span>Usar Tarefa Existente</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4 md:gap-6 ${isMobile ? '' : 'overflow-x-auto'} pb-4 md:pb-8`}>
