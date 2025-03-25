@@ -4,8 +4,6 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { ProjectOverview } from "@/components/ProjectOverview";
-import { ProjectMembers } from "@/components/ProjectMembers";
-import { UserInvitations } from "@/components/UserInvitations";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -55,22 +53,16 @@ export default function Kanban() {
     <div className="min-h-screen bg-background">
       <NavBar />
       
-      <main className="container px-6 pt-24 pb-12 mx-auto">
+      <main className="container px-6 pt-24 mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-medium">{project.title}</h1>
           <p className="text-muted-foreground">{project.description}</p>
-        </div>
-        
-        {/* Display any pending invitations at the top */}
-        <div className="mb-8">
-          <UserInvitations />
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="tasks">Task Board</TabsTrigger>
-            <TabsTrigger value="members">Team Members</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="mt-6">
@@ -83,13 +75,6 @@ export default function Kanban() {
           
           <TabsContent value="tasks" className="mt-6">
             <KanbanBoard projectId={project.id} />
-          </TabsContent>
-          
-          <TabsContent value="members" className="mt-6">
-            <ProjectMembers 
-              projectId={project.id} 
-              projectTitle={project.title}
-            />
           </TabsContent>
         </Tabs>
       </main>
