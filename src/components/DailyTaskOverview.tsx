@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -140,12 +139,12 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
     
     const handleTaskDateChanged = () => {
       console.log("Task date changed event detected, reloading daily overview");
-      loadAllTasks();
+      setTimeout(() => loadAllTasks(), 100);
     };
     
     const handleDailyTasksRefresh = () => {
       console.log("Daily tasks refresh event detected");
-      loadAllTasks();
+      setTimeout(() => loadAllTasks(), 200);
     };
     
     // Add all event listeners
@@ -173,7 +172,7 @@ export function DailyTaskOverview({ className }: DailyTaskOverviewProps) {
   useEffect(() => {
     loadAllTasks();
   }, [refreshCount, loadAllTasks]);
-  
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -330,3 +329,4 @@ function TaskItem({ task, priorityColor, isOverdue, completed }: TaskItemProps) 
     </div>
   );
 }
+

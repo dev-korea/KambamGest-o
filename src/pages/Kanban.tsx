@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -72,10 +71,10 @@ export default function Kanban() {
         console.log("Daily tasks refresh requested in Kanban");
         setTimeout(() => updateTaskStats(project.id), 300);
         
-        // Send another refresh event for other components
+        // Send another refresh event for other components with a longer delay
         setTimeout(() => {
           window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-        }, 400);
+        }, 500);
       }
     };
     
@@ -158,15 +157,18 @@ export default function Kanban() {
     if (project) {
       updateTaskStats(project.id);
       
-      // Dispatch an event to ensure daily tasks are refreshed with sufficient delay
+      // Dispatch events with increasing delays to ensure all components are updated
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
       }, 300);
       
-      // Send another refresh event with a longer delay to catch any late updates
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-      }, 600);
+        window.dispatchEvent(new CustomEvent('taskUpdated'));
+      }, 500);
+      
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('taskDateChanged'));
+      }, 700);
     }
   }, [project, updateTaskStats]);
 
