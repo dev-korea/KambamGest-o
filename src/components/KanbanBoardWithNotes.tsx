@@ -1,18 +1,16 @@
-
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KanbanColumn, Task } from "./KanbanColumn";
-import { Plus } from "lucide-react";
+import { Plus, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { undoSystem } from "@/utils/undoSystem";
-import { mapStatusToBoardFormat, normalizeStatus, formatDateForDisplay, normalizeDate } from "@/utils/taskStatusMapper";
+import { mapStatusToBoardFormat, normalizeStatus, normalizeDate } from "@/utils/taskStatusMapper";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 
 type StatusType = "pending" | "in_progress" | "in_review" | "completed";
@@ -257,7 +255,6 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
         window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
       }, 200);
       
-      // One more for good measure, with a longer delay
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
       }, 500);
@@ -283,13 +280,28 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     });
   };
 
+  const resetNewTaskForm = () => {
+    setNewTask({
+      title: "",
+      description: "",
+      priority: "medium",
+      status: "pending",
+      dueDate: "",
+      tags: [],
+      assignee: { name: "" },
+      linkedProjects: [],
+      collaborators: []
+    });
+    setSelectedDate(undefined);
+  };
+
   const addNewTask = () => {
     if (!newTask.title.trim()) {
       toast.error("Título da tarefa é obrigatório");
       return;
     }
     
-    const normalizedDueDate = newTask.dueDate ? normalizeDate(new Date(newTask.dueDate)) : "";
+    const normalizedDueDate = selectedDate ? normalizeDate(selectedDate) : "";
 
     const newTaskItem: Task = {
       id: `task-${Date.now()}`,
@@ -316,30 +328,24 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
     });
     
     setNewTaskOpen(false);
-    setNewTask({
-      title: "",
-      description: "",
-      priority: "medium",
-      status: "pending",
-      dueDate: "",
-      tags: [],
-      assignee: { name: "" },
-      linkedProjects: [],
-      collaborators: []
-    });
-    setSelectedDate(undefined);
+    resetNewTaskForm();
     
     if (normalizedDueDate) {
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('taskDateChanged'));
-      }, 10);
+      }, 100);
       
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-      }, 20);
+      }, 200);
     }
 
     toast.success("Tarefa adicionada com sucesso");
+  };
+
+  const handleCloseNewTaskDialog = () => {
+    setNewTaskOpen(false);
+    resetNewTaskForm();
   };
 
   const tasksByStatus = columns.reduce<Record<string, Task[]>>((acc, column) => {
@@ -380,7 +386,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
       </div>
 
       <Dialog open={newTaskOpen} onOpenChange={setNewTaskOpen}>
-        <DialogContent className={`max-w-md max-h-[90vh] ${isMobile ? 'w-[95%] p-4' : ''} overflow-y-auto`}>
+        <DialogContent className="max-w-md sm:max-w-lg max-h-[90vh] overflow-y-auto bg-background w-[95%] md:w-full">
           <DialogHeader>
             <DialogTitle>Adicionar Nova Tarefa</DialogTitle>
             <DialogDescription>
@@ -414,7 +420,7 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
               />
             </div>
             
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-4'}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="status" className="text-sm font-medium block mb-1">
                   Status
@@ -468,14 +474,15 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
+                    variant="outline"
+                    type="button"
                     className={`w-full justify-start text-left font-normal ${!selectedDate && "text-muted-foreground"}`}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Selecione uma data"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
+                <PopoverContent className="w-auto p-0 bg-background" align="start">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -495,11 +502,11 @@ export function KanbanBoardWithNotes({ projectId, onTasksChanged }: KanbanBoardP
             </div>
           </div>
           
-          <DialogFooter className={isMobile ? "flex-col gap-2" : ""}>
-            <Button variant="outline" onClick={() => setNewTaskOpen(false)} className={isMobile ? "w-full" : ""}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button variant="outline" onClick={handleCloseNewTaskDialog} className="w-full sm:w-auto">
               Cancelar
             </Button>
-            <Button onClick={addNewTask} className={isMobile ? "w-full" : ""}>
+            <Button onClick={addNewTask} className="w-full sm:w-auto">
               Adicionar Tarefa
             </Button>
           </DialogFooter>

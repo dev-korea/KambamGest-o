@@ -38,6 +38,7 @@ export function TaskDetailModal({
   const [activeTab, setActiveTab] = useState("details");
   const [users, setUsers] = useState<{name: string, email: string}[]>([]);
   const isMobile = useIsMobile();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Initialize date from task
   useEffect(() => {
@@ -66,36 +67,51 @@ export function TaskDetailModal({
   }, []);
 
   const handleSave = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     if (onUpdateTask) {
       const prevDate = task.dueDate;
       const newDate = editedTask.dueDate;
       
-      // Make sure task has a valid status
-      onUpdateTask(task.id, editedTask);
-      
-      // Dispatch multiple events to ensure all components are properly updated
-      window.dispatchEvent(new CustomEvent('taskUpdated'));
-      
-      // Additionally dispatch a specific event for date changes
-      if (prevDate !== newDate) {
-        console.log("Date changed from", prevDate, "to", newDate);
+      try {
+        // Make sure task has a valid status
+        onUpdateTask(task.id, editedTask);
         
-        // Force updates by dispatching multiple events with slight delays
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('taskDateChanged'));
-        }, 100);
+        // Dispatch multiple events to ensure all components are properly updated
+        window.dispatchEvent(new CustomEvent('taskUpdated'));
         
+        // Additionally dispatch a specific event for date changes
+        if (prevDate !== newDate) {
+          console.log("Date changed from", prevDate, "to", newDate);
+          
+          // Force updates by dispatching multiple events with slight delays
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('taskDateChanged'));
+          }, 100);
+          
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
+          }, 200);
+        }
+        
+        onOpenChange(false);
+        toast.success("Tarefa atualizada com sucesso");
+      } catch (error) {
+        console.error("Error saving task:", error);
+        toast.error("Erro ao salvar tarefa");
+      } finally {
         setTimeout(() => {
-          window.dispatchEvent(new CustomEvent('dailyTasksRefresh'));
-        }, 200);
+          setIsProcessing(false);
+        }, 500);
       }
-      
-      onOpenChange(false);
-      toast.success("Tarefa atualizada com sucesso");
     }
   };
 
   const handleDelete = () => {
+    if (isProcessing) return;
+    setIsProcessing(true);
+
     if (onDeleteTask) {
       try {
         onOpenChange(false); // Close modal first
@@ -110,6 +126,10 @@ export function TaskDetailModal({
       } catch (error) {
         console.error("Error deleting task:", error);
         toast.error("Erro ao excluir tarefa");
+      } finally {
+        setTimeout(() => {
+          setIsProcessing(false);
+        }, 500);
       }
     }
   };
@@ -189,8 +209,11 @@ export function TaskDetailModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      if (isProcessing && !newOpen) return; // Prevent closing during processing
+      onOpenChange(newOpen);
+    }}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto bg-background">
         <DialogHeader>
           <DialogTitle>{task.title}</DialogTitle>
           <DialogDescription>
@@ -199,10 +222,10 @@ export function TaskDetailModal({
         </DialogHeader>
         
         <Tabs defaultValue="details" onValueChange={setActiveTab} value={activeTab}>
-          <TabsList className={`grid ${isMobile ? 'grid-cols-1 gap-2' : 'grid-cols-3'}`}>
-            <TabsTrigger value="details">Detalhes</TabsTrigger>
-            <TabsTrigger value="subtasks">Subtarefas</TabsTrigger>
-            <TabsTrigger value="tags">Tags</TabsTrigger>
+          <TabsList className={`${isMobile ? 'flex flex-wrap gap-1' : 'grid grid-cols-3'} w-full mb-4`}>
+            <TabsTrigger value="details" className="flex-1">Detalhes</TabsTrigger>
+            <TabsTrigger value="subtasks" className="flex-1">Subtarefas</TabsTrigger>
+            <TabsTrigger value="tags" className="flex-1">Tags</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details" className="space-y-4">
@@ -223,7 +246,7 @@ export function TaskDetailModal({
               />
             </div>
             
-            <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-2 gap-4'}`}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-medium mb-1 block">Status</label>
                 <select
@@ -282,12 +305,12 @@ export function TaskDetailModal({
               <label className="text-sm font-medium mb-1 block">Data de vencimento</label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-left">
+                  <Button variant="outline" type="button" className="w-full justify-start text-left">
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {selectedDate ? format(selectedDate, 'dd/MM/yyyy') : "Selecione uma data"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" onClick={(e) => e.stopPropagation()}>
+                <PopoverContent className="w-auto p-0 bg-background" align="start">
                   <Calendar
                     mode="single"
                     selected={selectedDate}
@@ -330,7 +353,7 @@ export function TaskDetailModal({
               <div className="space-y-2">
                 {editedTask.subtasks.map((subtask) => (
                   <div key={subtask.id} className="flex items-center justify-between gap-2 p-2 bg-secondary/50 rounded-md">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1 overflow-hidden">
                       <Checkbox 
                         id={subtask.id} 
                         checked={subtask.completed} 
@@ -338,7 +361,7 @@ export function TaskDetailModal({
                       />
                       <label 
                         htmlFor={subtask.id} 
-                        className={`text-sm flex-1 ${subtask.completed ? 'line-through text-muted-foreground' : ''}`}
+                        className={`text-sm flex-1 truncate ${subtask.completed ? 'line-through text-muted-foreground' : ''}`}
                       >
                         {subtask.title}
                       </label>
@@ -395,18 +418,28 @@ export function TaskDetailModal({
             variant="destructive"
             size="sm"
             onClick={handleDelete}
+            disabled={isProcessing}
             className="w-full mb-4"
           >
-            Excluir tarefa
+            {isProcessing ? "Processando..." : "Excluir tarefa"}
           </Button>
         </div>
         
-        <DialogFooter className={isMobile ? "flex-col gap-2" : ""}>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className={isMobile ? "w-full" : ""}>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)} 
+            className="w-full sm:w-auto"
+            disabled={isProcessing}
+          >
             Cancelar
           </Button>
-          <Button onClick={handleSave} className={isMobile ? "w-full" : ""}>
-            Salvar alterações
+          <Button 
+            onClick={handleSave} 
+            className="w-full sm:w-auto"
+            disabled={isProcessing}
+          >
+            {isProcessing ? "Salvando..." : "Salvar alterações"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -101,8 +101,16 @@ export function KanbanColumn({
   const handleUpdateTask = (taskId: string, updatedTask: Partial<Task>) => {
     if (onUpdateTask) {
       onUpdateTask(taskId, updatedTask);
+      
       // Dispatch a custom event to inform other components about the task update
       window.dispatchEvent(new CustomEvent('taskUpdated'));
+      
+      // If date is included, dispatch a date change event
+      if ('dueDate' in updatedTask) {
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('taskDateChanged'));
+        }, 100);
+      }
     }
   };
 
@@ -110,7 +118,7 @@ export function KanbanColumn({
     <>
       <div 
         className={cn(
-          "kanban-column min-w-[250px] w-full md:min-w-[280px] md:w-auto p-3 md:p-4 rounded-lg bg-background border border-border transition-colors animate-fade-in",
+          "kanban-column min-w-[250px] w-full md:min-w-[280px] md:w-[300px] p-3 md:p-4 rounded-lg bg-background border border-border transition-colors animate-fade-in",
           isOver && "bg-secondary/80 border border-primary/20"
         )}
         onDragOver={handleDragOver}
